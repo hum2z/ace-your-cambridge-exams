@@ -387,16 +387,24 @@ export async function POST(request) {
 
       // Step 6: Fetch MS binary
       const msBuffer = await fetchPdfBuffer(matchingMs.url);
-      if (!msBuffer) continue;
+      if (!msBuffer) {
+        console.log(`[topical-extract] MS fetch failed for ${matchingMs.fileName} (not found or not a PDF)`);
+        continue;
+      }
 
-      // Step 7: Extract MS text and find pages with matching question numbers
+      // Step 7: Extract MS text and classify pages
       const msPageTexts = await extractPagesText(msBuffer);
-      if (msPageTexts.length === 0) continue;
 
-      // Build MS prompt: use question numbers if available, otherwise classify by topic
-      let msPrompt;
-      if (questionNumbers.length > 0) {
-        msPrompt = `
+      let msPageIndices = [];
+
+      // Try Groq classification first (with a small delay to avoid rate limiting)
+      await new Promise(r => setTimeout(r, 500));
+
+      try {
+        // Build MS prompt: use question numbers if available, otherwise classify by topic
+        let msPrompt;
+        if (questionNumbers.length > 0) {
+          msPrompt = `
 You are a Cambridge examiner assistant. You are given text extracted from a mark scheme called "${matchingMs.fileName}".
 
 Find the pages that contain the mark scheme for these specific question numbers: ${questionNumbers.join(', ')}
@@ -413,9 +421,8 @@ If nothing matches, return: { "matches": [] }
 PAGE TEXTS:
 ${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('\n\n---\n\n')}
 `;
-      } else {
-        // No specific question numbers — classify MS pages by topic instead
-        msPrompt = `
+        } else {
+          msPrompt = `
 You are a Cambridge examiner assistant. You are given text extracted from a mark scheme called "${matchingMs.fileName}".
 
 The student wants mark scheme pages related to the topic: "${cleanTopic}"
@@ -434,62 +441,75 @@ If nothing matches, return: { "matches": [] }
 PAGE TEXTS:
 ${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('\n\n---\n\n')}
 `;
+        }
+
+        const msRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: 'You are a JSON-only API assistant. Output ONLY valid JSON.' },
+              { role: 'user', content: msPrompt }
+            ],
+            response_format: { type: 'json_object' },
+            temperature: 0.1,
+          }),
+        });
+
+        if (msRes.ok) {
+          const msData = await msRes.json();
+          const msParsed = JSON.parse(msData.choices[0].message.content);
+          msPageIndices = (msParsed.matches || []).map(m => m.pageIndex);
+          console.log(`[topical-extract] Groq found ${msPageIndices.length} MS pages in ${matchingMs.fileName}`);
+        } else {
+          console.warn(`[topical-extract] Groq MS request failed (${msRes.status}) for ${matchingMs.fileName}`);
+        }
+      } catch (err) {
+        console.warn(`[topical-extract] Groq MS classification error for ${matchingMs.fileName}:`, err.message);
       }
 
-      const msRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: 'system', content: 'You are a JSON-only API assistant. Output ONLY valid JSON.' },
-            { role: 'user', content: msPrompt }
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.1,
-        }),
-      });
-
-      if (msRes.ok) {
-        const msData = await msRes.json();
-        try {
-          const msParsed = JSON.parse(msData.choices[0].message.content);
-          let msPageIndices = (msParsed.matches || []).map(m => m.pageIndex);
-
-          // Fallback: if Groq still finds nothing, do a keyword search on the MS pages
-          if (msPageIndices.length === 0) {
-            const topicLower = cleanTopic.toLowerCase();
-            const stem = topicLower.slice(0, Math.max(3, Math.floor(topicLower.length * 0.7)));
-            const syns = {
-              "kinematics": ["motion", "vector", "displacement"],
-              "dynamics": ["force", "newton", "momentum"],
-              "electricity": ["circuit", "current", "voltage", "resistance"]
-            };
-            const extra = syns[topicLower] || [];
-            const searchTerms = [topicLower, stem, ...extra];
-            msPageIndices = msPageTexts
-              .map((text, idx) => {
-                if (!text) return null;
-                const lower = text.toLowerCase();
-                return searchTerms.some(term => lower.includes(term)) ? idx + 1 : null;
-              })
-              .filter(Boolean);
-            console.log(`[topical-extract] MS keyword fallback found ${msPageIndices.length} pages in ${matchingMs.fileName}`);
-          }
-
-          if (msPageIndices.length > 0) {
-            for (const pageIdx of msPageIndices) {
-              const rawText = msPageTexts[pageIdx - 1] || '';
-              const sanitizedText = sanitizeText(rawText);
-              const title = `Mark Scheme for ${matchingMs.fileName} - Page ${pageIdx}`;
-              await addTextPageToMaster(masterMS, title, sanitizedText);
-              msPagesAdded++;
-            }
-            console.log(`[topical-extract] Extracted and drew text for ${msPageIndices.length} MS pages from ${matchingMs.fileName}`);
-          }
-        } catch (err) {
-          console.warn('[topical-extract] Failed to parse MS Groq response or draw text:', err.message);
+      // Fallback 1: keyword search on MS page text
+      if (msPageIndices.length === 0 && msPageTexts.length > 0) {
+        const topicLower = cleanTopic.toLowerCase();
+        const stem = topicLower.slice(0, Math.max(3, Math.floor(topicLower.length * 0.7)));
+        const syns = {
+          "kinematics": ["motion", "vector", "displacement"],
+          "dynamics": ["force", "newton", "momentum"],
+          "electricity": ["circuit", "current", "voltage", "resistance"],
+          "database": ["database", "table", "query", "record", "field", "sql", "primary key"],
+        };
+        const extra = syns[topicLower] || [];
+        const searchTerms = [topicLower, stem, ...extra];
+        msPageIndices = msPageTexts
+          .map((text, idx) => {
+            if (!text) return null;
+            const lower = text.toLowerCase();
+            return searchTerms.some(term => lower.includes(term)) ? idx + 1 : null;
+          })
+          .filter(Boolean);
+        if (msPageIndices.length > 0) {
+          console.log(`[topical-extract] MS keyword fallback found ${msPageIndices.length} pages in ${matchingMs.fileName}`);
         }
+      }
+
+      // Fallback 2: use the same page indices as the QP (mark schemes often mirror QP structure)
+      if (msPageIndices.length === 0 && qpPageIndices.length > 0) {
+        const msTotalPages = msPageTexts.length || 0;
+        // Only use QP page indices that are valid for the MS document
+        msPageIndices = qpPageIndices.filter(i => i >= 1 && i <= msTotalPages);
+        if (msPageIndices.length > 0) {
+          console.log(`[topical-extract] MS mirroring QP page indices [${msPageIndices}] for ${matchingMs.fileName}`);
+        }
+      }
+
+      // Copy actual MS PDF pages (not re-drawn text) into the master MS document
+      if (msPageIndices.length > 0) {
+        const msAdded = await copyPagesToMaster(masterMS, msBuffer, msPageIndices);
+        msPagesAdded += msAdded;
+        console.log(`[topical-extract] Copied ${msAdded} actual MS pages from ${matchingMs.fileName}`);
+      } else {
+        console.log(`[topical-extract] No MS pages found for ${matchingMs.fileName} after all fallbacks`);
       }
     }
 
