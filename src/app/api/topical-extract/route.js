@@ -393,8 +393,10 @@ export async function POST(request) {
       const msPageTexts = await extractPagesText(msBuffer);
       if (msPageTexts.length === 0) continue;
 
-      // Build a targeted prompt for MS using the already-known question numbers
-      const msPrompt = `
+      // Build MS prompt: use question numbers if available, otherwise classify by topic
+      let msPrompt;
+      if (questionNumbers.length > 0) {
+        msPrompt = `
 You are a Cambridge examiner assistant. You are given text extracted from a mark scheme called "${matchingMs.fileName}".
 
 Find the pages that contain the mark scheme for these specific question numbers: ${questionNumbers.join(', ')}
@@ -411,6 +413,29 @@ If nothing matches, return: { "matches": [] }
 PAGE TEXTS:
 ${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('\n\n---\n\n')}
 `;
+      } else {
+        // No specific question numbers — classify MS pages by topic instead
+        msPrompt = `
+You are a Cambridge examiner assistant. You are given text extracted from a mark scheme called "${matchingMs.fileName}".
+
+The student wants mark scheme pages related to the topic: "${cleanTopic}"
+
+Identify ONLY the pages that contain mark scheme answers related to "${cleanTopic}".
+
+Return a JSON object:
+{
+  "matches": [
+    { "pageIndex": 5, "questionNumbers": [] }
+  ]
+}
+
+If nothing matches, return: { "matches": [] }
+
+PAGE TEXTS:
+${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('\n\n---\n\n')}
+`;
+      }
+
       const msRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -429,7 +454,29 @@ ${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('
         const msData = await msRes.json();
         try {
           const msParsed = JSON.parse(msData.choices[0].message.content);
-          const msPageIndices = (msParsed.matches || []).map(m => m.pageIndex);
+          let msPageIndices = (msParsed.matches || []).map(m => m.pageIndex);
+
+          // Fallback: if Groq still finds nothing, do a keyword search on the MS pages
+          if (msPageIndices.length === 0) {
+            const topicLower = cleanTopic.toLowerCase();
+            const stem = topicLower.slice(0, Math.max(3, Math.floor(topicLower.length * 0.7)));
+            const syns = {
+              "kinematics": ["motion", "vector", "displacement"],
+              "dynamics": ["force", "newton", "momentum"],
+              "electricity": ["circuit", "current", "voltage", "resistance"]
+            };
+            const extra = syns[topicLower] || [];
+            const searchTerms = [topicLower, stem, ...extra];
+            msPageIndices = msPageTexts
+              .map((text, idx) => {
+                if (!text) return null;
+                const lower = text.toLowerCase();
+                return searchTerms.some(term => lower.includes(term)) ? idx + 1 : null;
+              })
+              .filter(Boolean);
+            console.log(`[topical-extract] MS keyword fallback found ${msPageIndices.length} pages in ${matchingMs.fileName}`);
+          }
+
           if (msPageIndices.length > 0) {
             for (const pageIdx of msPageIndices) {
               const rawText = msPageTexts[pageIdx - 1] || '';
