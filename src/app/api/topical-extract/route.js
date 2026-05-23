@@ -241,6 +241,34 @@ ${pageSummaries}
 }
 
 /**
+ * Extract question numbers from page text using common Cambridge exam patterns.
+ * Looks for patterns like "1 ", "2 (a)", "Question 3", "3(b)(i)" etc.
+ */
+function extractQuestionNumbersFromText(pageTexts, pageIndices) {
+  const questionNums = new Set();
+  for (const idx of pageIndices) {
+    const text = pageTexts[idx - 1] || '';
+    // Match patterns like: "1 ", "2 ", "3(a)", "4 (b)", "Question 5", etc.
+    // Cambridge papers typically use bold numbers at the start of questions
+    const patterns = [
+      /(?:^|\n)\s*(\d{1,2})\s*(?:\(|\s)/gm,          // "3 (" or "3 " at line start
+      /Question\s+(\d{1,2})/gi,                        // "Question 3"
+      /(?:^|\n)\s*(\d{1,2})\s*$/gm,                    // lone number at line start
+    ];
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(text)) !== null) {
+        const num = parseInt(match[1]);
+        if (num >= 1 && num <= 40) {  // reasonable question number range
+          questionNums.add(String(num));
+        }
+      }
+    }
+  }
+  return [...questionNums].sort((a, b) => parseInt(a) - parseInt(b));
+}
+
+/**
  * Given a list of page indices, copy those exact pages from the source PDF
  * into the master document.
  */
@@ -364,7 +392,15 @@ export async function POST(request) {
       }
 
       const qpPageIndices = qpMatches.map(m => m.pageIndex);
-      const questionNumbers = qpMatches.flatMap(m => m.questionNumbers || []);
+      let questionNumbers = qpMatches.flatMap(m => m.questionNumbers || []);
+
+      // If Groq didn't return question numbers (fallback paths), extract them from the QP page text
+      if (questionNumbers.length === 0) {
+        questionNumbers = extractQuestionNumbersFromText(qpPageTexts, qpPageIndices);
+        if (questionNumbers.length > 0) {
+          console.log(`[topical-extract] Extracted question numbers [${questionNumbers}] from QP page text for ${qpPaper.fileName}`);
+        }
+      }
       console.log(`[topical-extract] Found pages [${qpPageIndices}] for "${cleanTopic}" in ${qpPaper.fileName} — questions: ${questionNumbers.join(', ')}`);
 
       // Step 4: Copy those exact visual pages (snippet) into master QP PDF
