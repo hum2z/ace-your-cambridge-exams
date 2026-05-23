@@ -1,0 +1,22 @@
+{
+  "name": "past-paper-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@google/generative-ai": "latest",
+    "@vercel/blob": "^2.4.0",
+    "firebase": "latest",
+    "lucide-react": "latest",
+    "next": "latest",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^1.1.1",
+    "react": "latest",
+    "react-dom": "latest"
+  }
+}
