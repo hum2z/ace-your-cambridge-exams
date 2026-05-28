@@ -181,6 +181,55 @@ async function extractPagesText(buffer) {
 }
 
 /**
+ * Extracts question bounding boxes from each page.
+ * Returns an array of objects per page, containing question numbers and their Y coordinates.
+ */
+async function extractQuestionsMetadata(buffer) {
+  const pagesData = [];
+  try {
+    let pageIndex = 0;
+    await pdfParse(Buffer.from(buffer), {
+      pagerender: (pageData) => {
+        return pageData.getTextContent().then((textContent) => {
+          const items = textContent.items;
+          const questionsOnPage = [];
+          items.forEach(item => {
+             const str = item.str;
+             const x = item.transform[4];
+             const y = item.transform[5];
+             
+             if (x < 80 && /^\s*\d+\s*$/.test(str)) {
+                 questionsOnPage.push({ number: str.trim(), y: y, x: x });
+             } else if (/^Question\s+\d+/i.test(str)) {
+                 const numMatch = str.match(/\d+/);
+                 if (numMatch) {
+                     questionsOnPage.push({ number: numMatch[0], y: y, x: x });
+                 }
+             } else if (x < 80 && /^\s*\d+\([a-z]\)\s*$/.test(str)) {
+                 const numMatch = str.match(/\d+/);
+                 if (numMatch) {
+                     questionsOnPage.push({ number: numMatch[0], y: y, x: x });
+                 }
+             }
+          });
+          questionsOnPage.sort((a, b) => b.y - a.y);
+          pagesData.push({
+             pageIndex: pageIndex,
+             questions: questionsOnPage,
+             pageHeight: pageData.view ? pageData.view[3] : 841.89
+          });
+          pageIndex++;
+          return '';
+        });
+      }
+    });
+  } catch (err) {
+    console.warn('pdf-parse extraction warning:', err.message);
+  }
+  return pagesData;
+}
+
+/**
  * Ask Groq to identify which page indices are about the requested topic.
  * Returns an array of { pageIndex, questionNumbers } objects.
  */
@@ -269,22 +318,67 @@ function extractQuestionNumbersFromText(pageTexts, pageIndices) {
 }
 
 /**
- * Given a list of page indices, copy those exact pages from the source PDF
- * into the master document.
+ * Given a list of page matches and metadata, copy those exact pages from the source PDF
+ * into the master document, cropping to the specific question if possible.
  */
-async function copyPagesToMaster(masterDoc, pdfBuffer, pageIndices) {
-  if (!pdfBuffer || pageIndices.length === 0) return 0;
+async function copyPagesToMaster(masterDoc, pdfBuffer, matches, pagesMetadata) {
+  if (!pdfBuffer || matches.length === 0) return 0;
   try {
     const srcDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
     const totalPages = srcDoc.getPageCount();
+    let copiedCount = 0;
+    
     // Convert 1-based page numbers to 0-based indices, and bounds-check
-    const validIndices = pageIndices
-      .map(i => i - 1) // Groq returns 1-based page numbers
-      .filter(i => i >= 0 && i < totalPages);
-    if (validIndices.length === 0) return 0;
-    const copied = await masterDoc.copyPages(srcDoc, validIndices);
-    copied.forEach(page => masterDoc.addPage(page));
-    return copied.length;
+    const validMatches = matches.filter(m => {
+      const i = m.pageIndex - 1;
+      return i >= 0 && i < totalPages;
+    });
+    
+    if (validMatches.length === 0) return 0;
+    
+    const pageIndicesToCopy = validMatches.map(m => m.pageIndex - 1);
+    const copiedPages = await masterDoc.copyPages(srcDoc, pageIndicesToCopy);
+    
+    for (let idx = 0; idx < copiedPages.length; idx++) {
+      const page = copiedPages[idx];
+      const match = validMatches[idx];
+      const pageIndex0 = match.pageIndex - 1;
+      
+      const targetQuestionNums = match.questionNumbers || [];
+      const pageMeta = pagesMetadata[pageIndex0] || { questions: [], pageHeight: 841.89 };
+      
+      let cropTop = pageMeta.pageHeight;
+      let cropBottom = 0;
+      
+      if (targetQuestionNums.length > 0 && pageMeta.questions.length > 0) {
+          const allQs = pageMeta.questions; // already sorted descending by Y
+          const cropRegions = [];
+          
+          for (const targetQNum of targetQuestionNums) {
+              const qIndex = allQs.findIndex(q => q.number === String(targetQNum));
+              if (qIndex !== -1) {
+                  const qTop = allQs[qIndex].y + 20; // 20 units above the question text
+                  const qBottom = (qIndex + 1 < allQs.length) ? allQs[qIndex + 1].y - 20 : 0;
+                  cropRegions.push({ top: qTop, bottom: qBottom });
+              }
+          }
+          
+          if (cropRegions.length > 0) {
+              cropTop = Math.min(pageMeta.pageHeight, Math.max(...cropRegions.map(r => r.top)));
+              cropBottom = Math.max(0, Math.min(...cropRegions.map(r => r.bottom)));
+          }
+      }
+      
+      if (cropTop < pageMeta.pageHeight || cropBottom > 0) {
+          const { width } = page.getSize();
+          page.setCropBox(0, cropBottom, width, cropTop - cropBottom);
+      }
+      
+      masterDoc.addPage(page);
+      copiedCount++;
+    }
+    
+    return copiedCount;
   } catch (err) {
     console.error('copyPagesToMaster error:', err.message);
     return 0;
@@ -359,6 +453,7 @@ export async function POST(request) {
 
       // Step 2: Extract text per page (for AI identification only)
       const qpPageTexts = await extractPagesText(qpBuffer);
+      const qpPageMeta = await extractQuestionsMetadata(qpBuffer);
       if (qpPageTexts.length === 0) continue;
 
       // Step 3: Classify which pages are about the topic
@@ -396,7 +491,19 @@ export async function POST(request) {
 
       // If Groq didn't return question numbers (fallback paths), extract them from the QP page text
       if (questionNumbers.length === 0) {
-        questionNumbers = extractQuestionNumbersFromText(qpPageTexts, qpPageIndices);
+        // We didn't get question numbers from Groq. 
+        // Let's populate them from qpPageMeta for the matched pages!
+        qpMatches.forEach(m => {
+           const meta = qpPageMeta[m.pageIndex - 1];
+           if (meta && meta.questions.length > 0) {
+               m.questionNumbers = meta.questions.map(q => q.number);
+           }
+        });
+        questionNumbers = qpMatches.flatMap(m => m.questionNumbers || []);
+        
+        if (questionNumbers.length === 0) {
+          questionNumbers = extractQuestionNumbersFromText(qpPageTexts, qpPageIndices);
+        }
         if (questionNumbers.length > 0) {
           console.log(`[topical-extract] Extracted question numbers [${questionNumbers}] from QP page text for ${qpPaper.fileName}`);
         }
@@ -404,7 +511,7 @@ export async function POST(request) {
       console.log(`[topical-extract] Found pages [${qpPageIndices}] for "${cleanTopic}" in ${qpPaper.fileName} — questions: ${questionNumbers.join(', ')}`);
 
       // Step 4: Copy those exact visual pages (snippet) into master QP PDF
-      const qpAdded = await copyPagesToMaster(masterQP, qpBuffer, qpPageIndices);
+      const qpAdded = await copyPagesToMaster(masterQP, qpBuffer, qpMatches, qpPageMeta);
       qpPagesAdded += qpAdded;
 
       // Step 5: Find the corresponding Mark Scheme
@@ -430,8 +537,9 @@ export async function POST(request) {
 
       // Step 7: Extract MS text and classify pages
       const msPageTexts = await extractPagesText(msBuffer);
+      const msPageMeta = await extractQuestionsMetadata(msBuffer);
 
-      let msPageIndices = [];
+      let msMatches = [];
 
       // Try Groq classification first (with a small delay to avoid rate limiting)
       await new Promise(r => setTimeout(r, 500));
@@ -496,8 +604,8 @@ ${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('
         if (msRes.ok) {
           const msData = await msRes.json();
           const msParsed = JSON.parse(msData.choices[0].message.content);
-          msPageIndices = (msParsed.matches || []).map(m => m.pageIndex);
-          console.log(`[topical-extract] Groq found ${msPageIndices.length} MS pages in ${matchingMs.fileName}`);
+          msMatches = msParsed.matches || [];
+          console.log(`[topical-extract] Groq found ${msMatches.length} MS pages in ${matchingMs.fileName}`);
         } else {
           console.warn(`[topical-extract] Groq MS request failed (${msRes.status}) for ${matchingMs.fileName}`);
         }
@@ -506,7 +614,7 @@ ${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('
       }
 
       // Fallback 1: keyword search on MS page text
-      if (msPageIndices.length === 0 && msPageTexts.length > 0) {
+      if (msMatches.length === 0 && msPageTexts.length > 0) {
         const topicLower = cleanTopic.toLowerCase();
         const stem = topicLower.slice(0, Math.max(3, Math.floor(topicLower.length * 0.7)));
         const syns = {
@@ -517,31 +625,42 @@ ${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('
         };
         const extra = syns[topicLower] || [];
         const searchTerms = [topicLower, stem, ...extra];
-        msPageIndices = msPageTexts
-          .map((text, idx) => {
-            if (!text) return null;
-            const lower = text.toLowerCase();
-            return searchTerms.some(term => lower.includes(term)) ? idx + 1 : null;
-          })
-          .filter(Boolean);
-        if (msPageIndices.length > 0) {
-          console.log(`[topical-extract] MS keyword fallback found ${msPageIndices.length} pages in ${matchingMs.fileName}`);
+        msPageTexts.forEach((text, idx) => {
+          if (!text) return;
+          const lower = text.toLowerCase();
+          if (searchTerms.some(term => lower.includes(term))) {
+             msMatches.push({ pageIndex: idx + 1, questionNumbers: [] });
+          }
+        });
+        if (msMatches.length > 0) {
+          console.log(`[topical-extract] MS keyword fallback found ${msMatches.length} pages in ${matchingMs.fileName}`);
         }
       }
 
       // Fallback 2: use the same page indices as the QP (mark schemes often mirror QP structure)
-      if (msPageIndices.length === 0 && qpPageIndices.length > 0) {
+      if (msMatches.length === 0 && qpMatches.length > 0) {
         const msTotalPages = msPageTexts.length || 0;
-        // Only use QP page indices that are valid for the MS document
-        msPageIndices = qpPageIndices.filter(i => i >= 1 && i <= msTotalPages);
-        if (msPageIndices.length > 0) {
-          console.log(`[topical-extract] MS mirroring QP page indices [${msPageIndices}] for ${matchingMs.fileName}`);
+        msMatches = qpMatches.filter(m => m.pageIndex >= 1 && m.pageIndex <= msTotalPages);
+        if (msMatches.length > 0) {
+          console.log(`[topical-extract] MS mirroring QP matches for ${matchingMs.fileName}`);
         }
       }
+      
+      // Ensure MS matches have question numbers populated
+      msMatches.forEach(m => {
+          if (!m.questionNumbers || m.questionNumbers.length === 0) {
+              const meta = msPageMeta[m.pageIndex - 1];
+              if (meta && meta.questions.length > 0) {
+                  m.questionNumbers = meta.questions.map(q => q.number);
+              } else if (questionNumbers.length > 0) {
+                  m.questionNumbers = questionNumbers; // fallback to QP question numbers
+              }
+          }
+      });
 
       // Copy actual MS PDF pages (not re-drawn text) into the master MS document
-      if (msPageIndices.length > 0) {
-        const msAdded = await copyPagesToMaster(masterMS, msBuffer, msPageIndices);
+      if (msMatches.length > 0) {
+        const msAdded = await copyPagesToMaster(masterMS, msBuffer, msMatches, msPageMeta);
         msPagesAdded += msAdded;
         console.log(`[topical-extract] Copied ${msAdded} actual MS pages from ${matchingMs.fileName}`);
       } else {
