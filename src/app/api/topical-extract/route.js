@@ -192,31 +192,55 @@ async function extractQuestionsMetadata(buffer) {
       pagerender: (pageData) => {
         return pageData.getTextContent().then((textContent) => {
           const items = textContent.items;
+          const rotation = pageData.pageInfo.rotate || 0;
+          const view = pageData.pageInfo.view || [0, 0, 595.27, 841.89];
+          const isLandscape = (rotation === 90 || rotation === 270);
+          
           const questionsOnPage = [];
           items.forEach(item => {
              const str = item.str;
              const x = item.transform[4];
              const y = item.transform[5];
              
-             if (x < 80 && /^\s*\d+\s*$/.test(str)) {
-                 questionsOnPage.push({ number: str.trim(), y: y, x: x });
-             } else if (/^Question\s+\d+/i.test(str)) {
-                 const numMatch = str.match(/\d+/);
-                 if (numMatch) {
-                     questionsOnPage.push({ number: numMatch[0], y: y, x: x });
-                 }
-             } else if (x < 80 && /^\s*\d+\([a-z]\)\s*$/.test(str)) {
-                 const numMatch = str.match(/\d+/);
-                 if (numMatch) {
-                     questionsOnPage.push({ number: numMatch[0], y: y, x: x });
+             const hCoord = isLandscape ? y : x;
+             const vCoord = isLandscape ? x : y;
+             
+             const maxH = isLandscape ? 120 : 80;
+             if (hCoord < maxH) {
+                 const match = str.trim().match(/^\s*(\d+)/);
+                 if (match) {
+                     const mainQNum = parseInt(match[1]);
+                     if (mainQNum >= 1 && mainQNum <= 40) {
+                         questionsOnPage.push({ number: String(mainQNum), v: vCoord });
+                     }
                  }
              }
           });
-          questionsOnPage.sort((a, b) => b.y - a.y);
+          
+          // Sort from visual top to bottom
+          if (isLandscape) {
+              questionsOnPage.sort((a, b) => a.v - b.v);
+          } else {
+              questionsOnPage.sort((a, b) => b.v - a.v);
+          }
+          
+          // Deduplicate to keep only first occurrence of each question number
+          const uniqueQs = [];
+          const seen = new Set();
+          for (const q of questionsOnPage) {
+              if (!seen.has(q.number)) {
+                  seen.add(q.number);
+                  uniqueQs.push(q);
+              }
+          }
+          
           pagesData.push({
              pageIndex: pageIndex,
-             questions: questionsOnPage,
-             pageHeight: pageData.view ? pageData.view[3] : 841.89
+             questions: uniqueQs,
+             isLandscape: isLandscape,
+             pageHeight: isLandscape ? view[2] : view[3],
+             pageWidth: isLandscape ? view[3] : view[2],
+             rotation: rotation
           });
           pageIndex++;
           return '';
@@ -345,33 +369,85 @@ async function copyPagesToMaster(masterDoc, pdfBuffer, matches, pagesMetadata) {
       const pageIndex0 = match.pageIndex - 1;
       
       const targetQuestionNums = match.questionNumbers || [];
-      const pageMeta = pagesMetadata[pageIndex0] || { questions: [], pageHeight: 841.89 };
+      const pageMeta = pagesMetadata[pageIndex0] || { 
+        questions: [], 
+        isLandscape: false, 
+        pageHeight: 841.89, 
+        pageWidth: 595.27, 
+        rotation: 0 
+      };
       
-      let cropTop = pageMeta.pageHeight;
-      let cropBottom = 0;
+      const isLandscape = pageMeta.isLandscape;
+      const pageHeight = pageMeta.pageHeight;
+      const pageWidth = pageMeta.pageWidth;
+      const allQs = pageMeta.questions;
       
-      if (targetQuestionNums.length > 0 && pageMeta.questions.length > 0) {
-          const allQs = pageMeta.questions; // already sorted descending by Y
-          const cropRegions = [];
+      if (targetQuestionNums.length > 0) {
+          const intervals = [];
+          if (allQs.length === 0) {
+              // No questions detected, keep whole page
+              intervals.push({
+                  qNum: targetQuestionNums[0],
+                  boundA: isLandscape ? 0 : pageHeight,
+                  boundB: isLandscape ? pageHeight : 0
+              });
+          } else {
+              // Interval 0 (continuation from previous page)
+              const firstQVal = parseInt(allQs[0].number);
+              const prevQNum = (isNaN(firstQVal) || firstQVal <= 1) ? allQs[0].number : String(firstQVal - 1);
+              intervals.push({
+                  qNum: prevQNum,
+                  boundA: isLandscape ? 0 : pageHeight,
+                  boundB: allQs[0].v
+              });
+              
+              // Middle intervals
+              for (let i = 0; i < allQs.length - 1; i++) {
+                  intervals.push({
+                      qNum: allQs[i].number,
+                      boundA: allQs[i].v,
+                      boundB: allQs[i + 1].v
+                  });
+              }
+              
+              // Last interval
+              intervals.push({
+                  qNum: allQs[allQs.length - 1].number,
+                  boundA: allQs[allQs.length - 1].v,
+                  boundB: isLandscape ? pageHeight : 0
+              });
+          }
           
-          for (const targetQNum of targetQuestionNums) {
-              const qIndex = allQs.findIndex(q => q.number === String(targetQNum));
-              if (qIndex !== -1) {
-                  const qTop = allQs[qIndex].y + 20; // 20 units above the question text
-                  const qBottom = (qIndex + 1 < allQs.length) ? allQs[qIndex + 1].y - 20 : 0;
-                  cropRegions.push({ top: qTop, bottom: qBottom });
+          const keptIntervals = intervals.filter(int => 
+              targetQuestionNums.map(String).includes(String(int.qNum))
+          );
+          
+          if (keptIntervals.length > 0) {
+              if (isLandscape) {
+                  let xMin = Math.min(...keptIntervals.flatMap(i => [i.boundA, i.boundB]));
+                  let xMax = Math.max(...keptIntervals.flatMap(i => [i.boundA, i.boundB]));
+                  
+                  // Apply visual cropping with padding
+                  if (xMin > 0) xMin = Math.max(0, xMin - 20);
+                  if (xMax < pageHeight) xMax = Math.max(0, xMax - 20);
+                  
+                  if (xMin > 0 || xMax < pageHeight) {
+                      page.setCropBox(xMin, 0, xMax - xMin, pageWidth);
+                  }
+              } else {
+                  let yMin = Math.min(...keptIntervals.flatMap(i => [i.boundA, i.boundB]));
+                  let yMax = Math.max(...keptIntervals.flatMap(i => [i.boundA, i.boundB]));
+                  
+                  // Apply visual cropping with padding
+                  if (yMax < pageHeight) yMax = Math.min(pageHeight, yMax + 20);
+                  if (yMin > 0) yMin = Math.min(pageHeight, yMin + 20);
+                  
+                  if (yMin > 0 || yMax < pageHeight) {
+                      const { width } = page.getSize();
+                      page.setCropBox(0, yMin, width, yMax - yMin);
+                  }
               }
           }
-          
-          if (cropRegions.length > 0) {
-              cropTop = Math.min(pageMeta.pageHeight, Math.max(...cropRegions.map(r => r.top)));
-              cropBottom = Math.max(0, Math.min(...cropRegions.map(r => r.bottom)));
-          }
-      }
-      
-      if (cropTop < pageMeta.pageHeight || cropBottom > 0) {
-          const { width } = page.getSize();
-          page.setCropBox(0, cropBottom, width, cropTop - cropBottom);
       }
       
       masterDoc.addPage(page);
