@@ -1,24 +1,16 @@
 import './globals.css'
+import Header from '@/components/Header'
 
 export const metadata = {
-  title: 'Antigravity Past Papers',
-  description: 'The ultimate study companion for Cambridge students',
+  title: 'Past Paper | The AI Cambridge Study Companion',
+  description: 'Unlock your Cambridge potential. Generate topical past paper packages, get examiner notes, and study with an active AI Tutor.',
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <header className="glass-header">
-          <div className="logo">
-            <h1 style={{ fontSize: '1.5rem', letterSpacing: '-1px' }}>
-              PAST<span style={{ color: '#0070f3' }}>PAPER</span>
-            </h1>
-          </div>
-          <nav>
-            {/* Wallet button removed per user request */}
-          </nav>
-        </header>
+        <Header />
         <main>{children}</main>
       </body>
     </html>
