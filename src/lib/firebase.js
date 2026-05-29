@@ -1,5 +1,5 @@
-import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, getDocs, query, where } from "firebase/firestore";
+import { initializeApp, getApp, getApps } from "firebase/app";
+import { getFirestore, collection, addDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
@@ -12,13 +12,42 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
+// Only initialize Firebase if keys are present and not template placeholders
+const isConfigValid = 
+  firebaseConfig.apiKey && 
+  firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY" &&
+  !firebaseConfig.apiKey.startsWith("YOUR_");
+
+let app = null;
+let db = null;
+let storage = null;
+let auth = null;
+let googleProvider = null;
+
+if (isConfigValid) {
+  try {
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    db = getFirestore(app);
+    storage = getStorage(app);
+    auth = getAuth(app);
+    googleProvider = new GoogleAuthProvider();
+  } catch (error) {
+    console.warn("Firebase initialization failed, falling back to mock mode:", error);
+  }
+} else {
+  if (typeof window !== "undefined") {
+    console.warn("Firebase API key is not configured. Running client-side auth in Mock Mode.");
+  }
+}
+
+export { app, db, storage, auth, googleProvider };
 
 export const savePaperToFirebase = async (paper) => {
+  if (!db || !storage) {
+    console.warn("Firebase is not initialized. Mocking savePaperToFirebase call.");
+    return paper.url; // Fallback to original URL
+  }
+  
   try {
     // 1. Fetch paper from source via server proxy to bypass CORS
     const proxyUrl = `/api/proxy?url=${encodeURIComponent(paper.url)}`;
@@ -48,3 +77,4 @@ export const savePaperToFirebase = async (paper) => {
     throw error;
   }
 };
+
