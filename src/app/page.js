@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Search, Cpu, Send, ChevronDown, ChevronUp, MessageSquare, Plus, X, Sparkles, Printer, Layers, BookCopy, CheckSquare, Square, FileText } from 'lucide-react'
 import { askTutor } from '@/lib/gemini'
+import AuthGuard from '@/components/AuthGuard'
 
 export default function Home() {
   const [subjectCode, setSubjectCode] = useState('')
@@ -291,7 +292,8 @@ export default function Home() {
   }
 
   return (
-    <div style={{ padding: '0 40px', paddingBottom: '100px' }}>
+    <AuthGuard>
+      <div style={{ padding: '0 40px', paddingBottom: '100px' }}>
       <section style={{ textAlign: 'center', marginTop: '100px' }}>
         <h2 style={{ fontSize: '4rem', marginBottom: '10px' }} className="fade-in">
           Unlock Your <span style={{ color: '#0070f3' }}>Potential</span>
@@ -770,6 +772,7 @@ export default function Home() {
           {toast.message}
         </div>
       )}
-    </div>
+      </div>
+    </AuthGuard>
   )
 }
