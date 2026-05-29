@@ -18,19 +18,8 @@ export function AuthProvider({ children }) {
   const [isMockMode, setIsMockMode] = useState(false)
 
   useEffect(() => {
-    // Check if the API key in env.local is the default template placeholder
-    const isMock = !process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 
-                   process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'YOUR_FIREBASE_API_KEY'
-    
-    setIsMockMode(isMock)
-
-    if (isMock) {
-      console.warn("Firebase Auth is running in Mock Mode because API keys are not configured.")
-      // Read local storage to see if mock user exists
-      const savedMockUser = localStorage.getItem('mock_user')
-      if (savedMockUser) {
-        setUser(JSON.parse(savedMockUser))
-      }
+    if (!auth) {
+      console.error("Firebase auth not initialized");
       setLoading(false)
       return
     }
@@ -48,19 +37,6 @@ export function AuthProvider({ children }) {
   }, [])
 
   const loginWithGoogle = async () => {
-    if (isMockMode) {
-      // Mock Login Flow
-      const mockUser = {
-        uid: 'mock-user-123',
-        email: 'cambridge.student@gmail.com',
-        displayName: 'Cambridge Student',
-        photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80',
-        emailVerified: true
-      }
-      localStorage.setItem('mock_user', JSON.stringify(mockUser))
-      setUser(mockUser)
-      return mockUser
-    }
 
     try {
       setLoading(true)
@@ -75,11 +51,6 @@ export function AuthProvider({ children }) {
   }
 
   const logout = async () => {
-    if (isMockMode) {
-      localStorage.removeItem('mock_user')
-      setUser(null)
-      return
-    }
 
     try {
       setLoading(true)

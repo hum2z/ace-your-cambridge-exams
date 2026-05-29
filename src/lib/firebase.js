@@ -4,19 +4,13 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+  apiKey: "AIzaSyBGFw-QVH-ySNF07BH0tPr_yAmh_trlagQ",
+  authDomain: "studio-8021146580-c5c2b.firebaseapp.com",
+  projectId: "studio-8021146580-c5c2b",
+  storageBucket: "studio-8021146580-c5c2b.firebasestorage.app",
+  messagingSenderId: "878583748075",
+  appId: "1:878583748075:web:608dd745af82434409f5ae"
 };
-
-// Only initialize Firebase if keys are present and not template placeholders
-const isConfigValid = 
-  firebaseConfig.apiKey && 
-  firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY" &&
-  !firebaseConfig.apiKey.startsWith("YOUR_");
 
 let app = null;
 let db = null;
@@ -24,20 +18,14 @@ let storage = null;
 let auth = null;
 let googleProvider = null;
 
-if (isConfigValid) {
-  try {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    db = getFirestore(app);
-    storage = getStorage(app);
-    auth = getAuth(app);
-    googleProvider = new GoogleAuthProvider();
-  } catch (error) {
-    console.warn("Firebase initialization failed, falling back to mock mode:", error);
-  }
-} else {
-  if (typeof window !== "undefined") {
-    console.warn("Firebase API key is not configured. Running client-side auth in Mock Mode.");
-  }
+try {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+  db = getFirestore(app);
+  storage = getStorage(app);
+  auth = getAuth(app);
+  googleProvider = new GoogleAuthProvider();
+} catch (error) {
+  console.error("Firebase initialization failed:", error);
 }
 
 export { app, db, storage, auth, googleProvider };
