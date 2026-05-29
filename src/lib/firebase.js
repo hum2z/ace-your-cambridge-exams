@@ -1,5 +1,5 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
-import { getFirestore, collection, addDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, doc, getDoc, setDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
@@ -29,6 +29,25 @@ try {
 }
 
 export { app, db, storage, auth, googleProvider };
+
+// Subscription helpers
+export const getSubscription = async (userId) => {
+  if (!db || !userId) return null;
+  try {
+    const docRef = doc(db, "subscriptions", userId);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? docSnap.data() : null;
+  } catch (error) {
+    console.error("Error fetching subscription:", error);
+    return null;
+  }
+};
+
+export const isSubscriptionActive = (subscription) => {
+  if (!subscription || subscription.status !== "active") return false;
+  if (!subscription.expiresAt) return false;
+  return new Date(subscription.expiresAt) > new Date();
+};
 
 export const savePaperToFirebase = async (paper) => {
   if (!db || !storage) {

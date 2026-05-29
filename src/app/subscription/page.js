@@ -1,45 +1,67 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, CreditCard, Shield, X, CheckCircle, Sparkles, ChevronDown, ChevronUp, Lock } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Check, CreditCard, Shield, ChevronDown, ChevronUp, Crown, Zap, ExternalLink, AlertCircle } from 'lucide-react'
+import { useAuth } from '@/components/AuthContext'
 
 export default function SubscriptionPage() {
-  const [showCheckout, setShowCheckout] = useState(false)
-  const [paymentSuccess, setPaymentSuccess] = useState(false)
-  const [checkoutEmail, setCheckoutEmail] = useState('')
-  const [cardName, setCardName] = useState('')
-  const [cardNumber, setCardNumber] = useState('')
-  const [cardExpiry, setCardExpiry] = useState('')
-  const [cardCvc, setCardCvc] = useState('')
+  const { user, isPremium, subscription, loading } = useAuth()
+  const router = useRouter()
   const [processing, setProcessing] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
   // FAQ accordion state
   const [openFaq, setOpenFaq] = useState(null)
+  const toggleFaq = (index) => setOpenFaq(openFaq === index ? null : index)
 
-  const toggleFaq = (index) => {
-    setOpenFaq(openFaq === index ? null : index)
-  }
+  // Check if URL has cancelled param
+  const isCancelled = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('cancelled')
 
-  const handleCheckoutSubmit = (e) => {
-    e.preventDefault()
-    if (!checkoutEmail || !cardName || !cardNumber) return
-    
+  const handleActivatePremium = async () => {
+    setErrorMsg('')
+
+    // Must be logged in
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
     setProcessing(true)
-    setTimeout(() => {
+
+    try {
+      const response = await fetch('/api/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.uid,
+          userEmail: user.email
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create payment')
+      }
+
+      if (data.redirect_url) {
+        // Redirect to Ziina hosted checkout
+        window.location.href = data.redirect_url
+      } else {
+        throw new Error('No redirect URL received from payment service')
+      }
+    } catch (error) {
+      console.error('Payment error:', error)
+      setErrorMsg(error.message || 'Something went wrong. Please try again.')
       setProcessing(false)
-      setPaymentSuccess(true)
-    }, 2000)
+    }
   }
 
-  const resetCheckout = () => {
-    setShowCheckout(false)
-    setPaymentSuccess(false)
-    setCheckoutEmail('')
-    setCardName('')
-    setCardNumber('')
-    setCardExpiry('')
-    setCardCvc('')
-  }
+  // Calculate days remaining for active subscription
+  const daysRemaining = subscription?.expiresAt
+    ? Math.max(0, Math.ceil((new Date(subscription.expiresAt) - new Date()) / (1000 * 60 * 60 * 24)))
+    : 0
 
   const faqs = [
     {
@@ -47,8 +69,8 @@ export default function SubscriptionPage() {
       a: "The Premium Study Pass unlocks absolute, unrestricted access to the entire Past Paper ecosystem. You get unlimited Topical Snippet extractions (all subjects, all variants, all years), instant Examiner Intelligence Reports, 24/7 AI Tutor chat interactions, and unlimited Authentic Mega-PDF compiles."
     },
     {
-      q: "Can I cancel my subscription?",
-      a: "Yes! There are absolutely no contracts or obligations. You can cancel your subscription at any time with a single click from your profile settings. Your access will remain active until the end of your billing cycle."
+      q: "How does billing work?",
+      a: "Each payment grants you 30 days of full premium access. When your access expires, you can renew with a single click. Payments are processed securely through Ziina — your card details never touch our servers."
     },
     {
       q: "Is there a money-back guarantee?",
@@ -60,7 +82,7 @@ export default function SubscriptionPage() {
     },
     {
       q: "Is my payment information secure?",
-      a: "Absolutely. When we launch our backend processing, all billing will be handled by leading enterprise processors like Stripe. None of your card credentials touch our servers directly. For this mock portal, no actual charges are processed."
+      a: "Absolutely. All payments are processed through Ziina, a secure and regulated payment gateway. Your card information is handled entirely on Ziina's PCI-compliant servers — none of your payment credentials ever touch our servers."
     }
   ]
 
@@ -83,9 +105,22 @@ export default function SubscriptionPage() {
           Unleash <span style={{ background: 'linear-gradient(to right, #0070f3, #7928ca)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Unlimited Studying</span>
         </h1>
         <p style={{ color: '#a0a0a0', fontSize: '1.1rem', maxWidth: '550px', margin: '0 auto 50px', lineHeight: '1.6' }}>
-          Accelerate your AS/A-Level exam grades with fully unlocked AI synthesis and paper compiling. One simple plan. Cancel anytime.
+          Accelerate your AS/A-Level exam grades with fully unlocked AI synthesis and paper compiling. One simple plan. Renew anytime.
         </p>
       </section>
+
+      {/* Cancelled payment notice */}
+      {isCancelled && (
+        <div style={{
+          maxWidth: '480px', margin: '0 auto 24px', padding: '14px 20px',
+          background: 'rgba(255, 152, 0, 0.06)', border: '1px solid rgba(255, 152, 0, 0.2)',
+          borderRadius: '14px', display: 'flex', alignItems: 'center', gap: '10px',
+          color: '#ff9800', fontSize: '0.85rem'
+        }}>
+          <AlertCircle size={18} />
+          <span>Payment was cancelled. You can try again whenever you're ready.</span>
+        </div>
+      )}
 
       {/* Premium Pricing Card */}
       <section style={{ display: 'flex', justifyContent: 'center', margin: '40px 0' }}>
@@ -93,32 +128,63 @@ export default function SubscriptionPage() {
           width: '100%', 
           maxWidth: '480px', 
           padding: '40px',
-          border: '1px solid rgba(0, 112, 243, 0.25)',
+          border: isPremium ? '1px solid rgba(0, 230, 118, 0.25)' : '1px solid rgba(0, 112, 243, 0.25)',
           background: 'rgba(5, 5, 5, 0.85)',
-          boxShadow: '0 30px 60px rgba(0,0,0,0.7), 0 0 40px rgba(0,112,243,0.1)'
+          boxShadow: isPremium 
+            ? '0 30px 60px rgba(0,0,0,0.7), 0 0 40px rgba(0,230,118,0.1)' 
+            : '0 30px 60px rgba(0,0,0,0.7), 0 0 40px rgba(0,112,243,0.1)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
             <div>
-              <span style={{ 
-                background: 'rgba(0,112,243,0.15)', 
-                border: '1px solid rgba(0,112,243,0.3)',
-                borderRadius: '50px',
-                padding: '6px 12px',
-                color: '#0070f3',
-                fontSize: '0.75rem',
-                fontWeight: '700',
-                textTransform: 'uppercase',
-                letterSpacing: '1px'
-              }}>
-                PRO STUDY PASS
-              </span>
-              <h2 style={{ fontSize: '2rem', marginTop: '12px', marginBottom: 0, color: 'white' }}>Full Access Pass</h2>
+              {isPremium ? (
+                <span style={{ 
+                  background: 'rgba(0,230,118,0.15)', border: '1px solid rgba(0,230,118,0.3)',
+                  borderRadius: '50px', padding: '6px 12px', color: '#00e676',
+                  fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase',
+                  letterSpacing: '1px', display: 'inline-flex', alignItems: 'center', gap: '5px'
+                }}>
+                  <Crown size={12} /> ACTIVE
+                </span>
+              ) : (
+                <span style={{ 
+                  background: 'rgba(0,112,243,0.15)', border: '1px solid rgba(0,112,243,0.3)',
+                  borderRadius: '50px', padding: '6px 12px', color: '#0070f3',
+                  fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px'
+                }}>
+                  PRO STUDY PASS
+                </span>
+              )}
+              <h2 style={{ fontSize: '2rem', marginTop: '12px', marginBottom: 0, color: 'white' }}>
+                Full Access Pass
+              </h2>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '2.8rem', fontWeight: '800', color: 'white', lineHeight: '1' }}>$5</div>
-              <div style={{ fontSize: '0.85rem', color: '#a0a0a0', marginTop: '4px' }}>USD / monthly</div>
+              <div style={{ fontSize: '2.8rem', fontWeight: '800', color: 'white', lineHeight: '1' }}>20</div>
+              <div style={{ fontSize: '0.85rem', color: '#a0a0a0', marginTop: '4px' }}>AED / 30 days</div>
             </div>
           </div>
+
+          {/* Active subscription info */}
+          {isPremium && (
+            <div style={{
+              background: 'rgba(0, 230, 118, 0.05)', border: '1px solid rgba(0, 230, 118, 0.15)',
+              borderRadius: '12px', padding: '14px 18px', marginBottom: '24px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#00e676', fontSize: '0.85rem', fontWeight: '600' }}>
+                  Premium Active
+                </span>
+                <span style={{ color: '#a0a0a0', fontSize: '0.8rem' }}>
+                  {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} remaining
+                </span>
+              </div>
+              {subscription?.expiresAt && (
+                <p style={{ color: '#666', fontSize: '0.75rem', margin: '6px 0 0 0' }}>
+                  Expires {new Date(subscription.expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </p>
+              )}
+            </div>
+          )}
 
           <p style={{ color: '#a0a0a0', fontSize: '0.9rem', marginBottom: '30px', lineHeight: '1.5' }}>
             Empowers you with unlimited AI tutor requests, rapid topical extractions, and priority server merges.
@@ -127,51 +193,76 @@ export default function SubscriptionPage() {
           <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.06)', marginBottom: '30px' }}></div>
 
           <ul className="feature-list">
-            <li className="feature-item">
-              <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(0,112,243,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Check size={12} color="#0070f3" />
-              </div>
-              <span>Unlimited Topical Snippet extractions</span>
-            </li>
-            <li className="feature-item">
-              <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(0,112,243,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Check size={12} color="#0070f3" />
-              </div>
-              <span>Unlimited Examiner Intel Report compiles</span>
-            </li>
-            <li className="feature-item">
-              <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(0,112,243,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Check size={12} color="#0070f3" />
-              </div>
-              <span>24/7 Unlimited AI Study Tutor workspace</span>
-            </li>
-            <li className="feature-item">
-              <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(0,112,243,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Check size={12} color="#0070f3" />
-              </div>
-              <span>Authentic past paper downloads (all years)</span>
-            </li>
-            <li className="feature-item">
-              <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(0,112,243,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Check size={12} color="#0070f3" />
-              </div>
-              <span>Priority server speed (no waiting queues)</span>
-            </li>
+            {[
+              'Unlimited Topical Snippet extractions',
+              'Unlimited Examiner Intel Report compiles',
+              '24/7 Unlimited AI Study Tutor workspace',
+              'Authentic past paper downloads (all years)',
+              'Priority server speed (no waiting queues)'
+            ].map((feature, i) => (
+              <li key={i} className="feature-item">
+                <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: isPremium ? 'rgba(0,230,118,0.1)' : 'rgba(0,112,243,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Check size={12} color={isPremium ? "#00e676" : "#0070f3"} />
+                </div>
+                <span>{feature}</span>
+              </li>
+            ))}
           </ul>
 
-          <button 
-            type="button" 
-            className="btn-premium" 
-            onClick={() => setShowCheckout(true)}
-            style={{ marginTop: '20px' }}
-            id="checkout-trigger-btn"
-          >
-            <CreditCard size={18} /> Activate Premium Pass
-          </button>
+          {/* Error message */}
+          {errorMsg && (
+            <div style={{
+              background: 'rgba(255, 23, 68, 0.08)', border: '1px solid rgba(255, 23, 68, 0.2)',
+              borderRadius: '12px', padding: '12px 16px', marginTop: '20px',
+              display: 'flex', alignItems: 'center', gap: '10px'
+            }}>
+              <AlertCircle size={16} color="#ff1744" style={{ flexShrink: 0 }} />
+              <p style={{ margin: 0, fontSize: '0.8rem', color: '#ff1744', lineHeight: '1.4' }}>{errorMsg}</p>
+            </div>
+          )}
+
+          {/* CTA Button */}
+          {isPremium ? (
+            <button 
+              type="button" 
+              className="btn-premium" 
+              onClick={handleActivatePremium}
+              style={{ marginTop: '20px', background: 'linear-gradient(135deg, #00c853, #00897b)' }}
+              id="renew-premium-btn"
+            >
+              <Zap size={18} /> Renew Premium (20 AED)
+            </button>
+          ) : (
+            <button 
+              type="button" 
+              className="btn-premium" 
+              onClick={handleActivatePremium}
+              disabled={processing}
+              style={{ marginTop: '20px' }}
+              id="checkout-trigger-btn"
+            >
+              {processing ? (
+                <>
+                  <div style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderLeftColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                  Connecting to Ziina...
+                </>
+              ) : (
+                <>
+                  <CreditCard size={18} /> Activate Premium Pass
+                </>
+              )}
+            </button>
+          )}
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '20px', color: '#a0a0a0', fontSize: '0.8rem' }}>
-            <Shield size={14} color="#00e676" /> Secure 256-Bit SSL Encryption
+            <Shield size={14} color="#00e676" /> Secure payments via Ziina
           </div>
+
+          {!user && (
+            <p style={{ textAlign: 'center', color: '#666', fontSize: '0.75rem', marginTop: '12px' }}>
+              You'll be asked to sign in before checkout
+            </p>
+          )}
         </div>
       </section>
 
@@ -200,159 +291,6 @@ export default function SubscriptionPage() {
           })}
         </div>
       </section>
-
-      {/* Mock Checkout Modal Pop-up */}
-      {showCheckout && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.8)',
-          backdropFilter: 'blur(10px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000,
-          padding: '20px',
-          animation: 'fadeIn 0.3s ease'
-        }}>
-          <div className="premium-card" style={{ 
-            width: '100%', 
-            maxWidth: '480px', 
-            padding: '30px', 
-            background: '#090909', 
-            border: '1px solid rgba(255,255,255,0.08)',
-            position: 'relative'
-          }}>
-            {/* Close button */}
-            <button 
-              onClick={resetCheckout}
-              style={{ position: 'absolute', right: '20px', top: '20px', background: 'transparent', border: 'none', color: '#a0a0a0', cursor: 'pointer' }}
-              id="checkout-close-btn"
-            >
-              <X size={20} />
-            </button>
-
-            {!paymentSuccess ? (
-              <form onSubmit={handleCheckoutSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }} id="mock-checkout-form">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <Lock size={18} color="#0070f3" />
-                  <h3 style={{ fontSize: '1.4rem', margin: 0, color: 'white' }}>Pro Checkout</h3>
-                </div>
-
-                <p style={{ color: '#a0a0a0', fontSize: '0.85rem', margin: 0 }}>
-                  Activating **Pro Study Pass** at **$5.00 USD/mo**. No money will be billed in this mock state.
-                </p>
-
-                {/* Email Address */}
-                <div>
-                  <p style={{ color: '#a0a0a0', fontSize: '0.8rem', marginBottom: '6px' }}>Email Address:</p>
-                  <input
-                    type="email"
-                    required
-                    className="search-input"
-                    placeholder="you@domain.com"
-                    value={checkoutEmail}
-                    onChange={(e) => setCheckoutEmail(e.target.value)}
-                    style={{ padding: '12px 20px', fontSize: '0.95rem', borderRadius: '12px' }}
-                    id="checkout-field-email"
-                  />
-                </div>
-
-                {/* Name on Card */}
-                <div>
-                  <p style={{ color: '#a0a0a0', fontSize: '0.8rem', marginBottom: '6px' }}>Cardholder Name:</p>
-                  <input
-                    type="text"
-                    required
-                    className="search-input"
-                    placeholder="John Doe"
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
-                    style={{ padding: '12px 20px', fontSize: '0.95rem', borderRadius: '12px' }}
-                    id="checkout-field-name"
-                  />
-                </div>
-
-                {/* Credit Card Input */}
-                <div>
-                  <p style={{ color: '#a0a0a0', fontSize: '0.8rem', marginBottom: '6px' }}>Card Credentials:</p>
-                  <input
-                    type="text"
-                    required
-                    className="search-input"
-                    placeholder="4242 4242 4242 4242"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value)}
-                    style={{ padding: '12px 20px', fontSize: '0.95rem', borderRadius: '12px' }}
-                    id="checkout-field-card"
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                  <div>
-                    <p style={{ color: '#a0a0a0', fontSize: '0.8rem', marginBottom: '6px' }}>Expiry Date:</p>
-                    <input
-                      type="text"
-                      required
-                      className="search-input"
-                      placeholder="MM/YY"
-                      value={cardExpiry}
-                      onChange={(e) => setCardExpiry(e.target.value)}
-                      style={{ padding: '12px 20px', fontSize: '0.95rem', borderRadius: '12px' }}
-                      id="checkout-field-expiry"
-                    />
-                  </div>
-                  <div>
-                    <p style={{ color: '#a0a0a0', fontSize: '0.8rem', marginBottom: '6px' }}>CVC Code:</p>
-                    <input
-                      type="text"
-                      required
-                      className="search-input"
-                      placeholder="123"
-                      value={cardCvc}
-                      onChange={(e) => setCardCvc(e.target.value)}
-                      style={{ padding: '12px 20px', fontSize: '0.95rem', borderRadius: '12px' }}
-                      id="checkout-field-cvc"
-                    />
-                  </div>
-                </div>
-
-                <button 
-                  type="submit" 
-                  className="btn-premium"
-                  disabled={processing}
-                  style={{ marginTop: '10px' }}
-                  id="checkout-submit-btn"
-                >
-                  {processing ? (
-                    <><div style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderLeftColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div> Processing Payment...</>
-                  ) : (
-                    <>Authorize & Upgrade ($5.00)</>
-                  )}
-                </button>
-              </form>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '20px 0' }} className="fade-in" id="mock-checkout-success">
-                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(0,230,118,0.1)', marginBottom: '24px' }}>
-                  <CheckCircle size={36} color="#00e676" />
-                </div>
-                <h3 style={{ fontSize: '1.8rem', color: 'white', marginBottom: '12px' }}>Welcome to Pro!</h3>
-                <p style={{ color: '#a0a0a0', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '30px' }}>
-                  Congratulations, you have unlocked the **Pro Study Pass**! Your free simulation upgrade is active. Get ready to excel in your Cambridge studies.
-                </p>
-                <button 
-                  onClick={resetCheckout} 
-                  className="btn-primary"
-                  style={{ width: '100%', borderRadius: '14px', padding: '14px 28px' }}
-                  id="checkout-success-close-btn"
-                >
-                  Explore Dashboard
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
