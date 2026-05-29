@@ -42,7 +42,7 @@ export async function POST(request) {
       body: JSON.stringify({
         amount: AMOUNT_FILS,
         currency_code: CURRENCY,
-        message: `PastPaper Pro Study Pass — 30 Day Access (${userEmail || "user"})`,
+        message: "PastPaper Pro - 30 Day Pass",
         success_url: successUrl,
         cancel_url: cancelUrl,
         test: process.env.ZIINA_TEST_MODE !== "false", // Default to test mode
