@@ -202,7 +202,7 @@ export default function Home() {
       const qpUrl = window.URL.createObjectURL(qpBlob)
       const qpLink = document.createElement('a')
       qpLink.href = qpUrl
-      qpLink.download = `${cleanCode}_${compilationYear}_Combined_Question_Papers.pdf`
+      qpLink.target = '_blank'
       document.body.appendChild(qpLink)
       qpLink.click()
       qpLink.remove()
@@ -222,7 +222,7 @@ export default function Home() {
       const msUrl = window.URL.createObjectURL(msBlob)
       const msLink = document.createElement('a')
       msLink.href = msUrl
-      msLink.download = `${cleanCode}_${compilationYear}_Combined_Mark_Schemes.pdf`
+      msLink.target = '_blank'
       document.body.appendChild(msLink)
       msLink.click()
       msLink.remove()
@@ -240,7 +240,7 @@ export default function Home() {
   const downloadFile = (url, name) => {
     const link = document.createElement('a');
     link.href = url;
-    link.download = name;
+    link.target = '_blank';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
