@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { CheckCircle, XCircle, Loader2, ArrowRight, Sparkles } from 'lucide-react'
 import { Suspense } from 'react'
+import { useAuth } from '@/components/AuthContext'
 
 function SuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { user, refreshSubscription } = useAuth()
   const [status, setStatus] = useState('verifying') // verifying | success | failed
   const [expiresAt, setExpiresAt] = useState(null)
 
@@ -28,6 +30,12 @@ function SuccessContent() {
         if (data.completed) {
           setStatus('success')
           setExpiresAt(data.expiresAt)
+          
+          // Refresh the global auth state so that premium options are immediately enabled
+          const targetUid = uid || user?.uid
+          if (targetUid) {
+            await refreshSubscription(targetUid)
+          }
         } else {
           setStatus('failed')
         }
@@ -38,7 +46,7 @@ function SuccessContent() {
     }
 
     verifyPayment()
-  }, [searchParams])
+  }, [searchParams, user, refreshSubscription])
 
   if (status === 'verifying') {
     return (
