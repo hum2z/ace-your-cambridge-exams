@@ -9,7 +9,7 @@ import { useAuth } from '@/components/AuthContext'
 function SuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { user, refreshSubscription } = useAuth()
+  const { user, setIsPremium, setSubscription, refreshSubscription } = useAuth()
   const [status, setStatus] = useState('verifying') // verifying | success | failed
   const [expiresAt, setExpiresAt] = useState(null)
 
@@ -31,7 +31,14 @@ function SuccessContent() {
           setStatus('success')
           setExpiresAt(data.expiresAt)
           
-          // Refresh the global auth state so that premium options are immediately enabled
+          // Instantly activate premium locally in client state to bypass any database replication lag
+          setIsPremium(true)
+          setSubscription({
+            status: 'active',
+            expiresAt: data.expiresAt
+          })
+
+          // Refresh from Firestore database to ensure persistence is fully synced
           const targetUid = uid || user?.uid
           if (targetUid) {
             await refreshSubscription(targetUid)
