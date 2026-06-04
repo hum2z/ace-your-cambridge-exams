@@ -30,13 +30,15 @@ try {
 
 export { app, db, storage, auth, googleProvider };
 
-// Subscription helpers
 export const getSubscription = async (userId) => {
-  if (!db || !userId) return null;
+  if (!userId) return null;
   try {
-    const docRef = doc(db, "subscriptions", userId);
-    const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? docSnap.data() : null;
+    const response = await fetch(`/api/get-subscription?uid=${userId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch subscription: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.subscription || null;
   } catch (error) {
     console.error("Error fetching subscription:", error);
     return null;
