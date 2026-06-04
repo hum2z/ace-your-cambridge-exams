@@ -159,8 +159,8 @@ export default function SubscriptionPage() {
               </h2>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '2.8rem', fontWeight: '800', color: 'white', lineHeight: '1' }}>20</div>
-              <div style={{ fontSize: '0.85rem', color: '#a0a0a0', marginTop: '4px' }}>AED / 30 days</div>
+              <div style={{ fontSize: '2.8rem', fontWeight: '800', color: 'white', lineHeight: '1' }}>$5</div>
+              <div style={{ fontSize: '0.85rem', color: '#a0a0a0', marginTop: '4px' }}>USD / 30 days</div>
             </div>
           </div>
 
@@ -230,7 +230,7 @@ export default function SubscriptionPage() {
               style={{ marginTop: '20px', background: 'linear-gradient(135deg, #00c853, #00897b)' }}
               id="renew-premium-btn"
             >
-              <Zap size={18} /> Renew Premium (20 AED)
+              <Zap size={18} /> Renew Premium ($5)
             </button>
           ) : (
             <button 

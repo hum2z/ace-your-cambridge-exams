@@ -55,7 +55,7 @@ export default function HomePage() {
         <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }} className="fade-in">
           <Link href="/">
             <button className="btn-primary" style={{ padding: '16px 36px', borderRadius: '50px', fontSize: '1rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 8px 30px rgba(0,112,243,0.4)' }}>
-              Launch Free Companion <ChevronRight size={16} />
+              Launch Study Engine <ChevronRight size={16} />
             </button>
           </Link>
           <Link href="/subscription">

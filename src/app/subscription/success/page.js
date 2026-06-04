@@ -29,17 +29,7 @@ function SuccessContent() {
           setStatus('success')
           setExpiresAt(data.expiresAt)
         } else {
-          // Payment might still be processing — retry once after 3s
-          setTimeout(async () => {
-            const retryRes = await fetch(`/api/verify-payment?pi=${pi}&uid=${uid}`)
-            const retryData = await retryRes.json()
-            if (retryData.completed) {
-              setStatus('success')
-              setExpiresAt(retryData.expiresAt)
-            } else {
-              setStatus('failed')
-            }
-          }, 3000)
+          setStatus('failed')
         }
       } catch (err) {
         console.error('Payment verification error:', err)

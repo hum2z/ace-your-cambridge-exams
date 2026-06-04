@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Search, Cpu, Send, ChevronDown, ChevronUp, MessageSquare, Plus, X, Sparkles, Printer, Layers, BookCopy, CheckSquare, Square, FileText } from 'lucide-react'
 import { askTutor } from '@/lib/gemini'
-import AuthGuard from '@/components/AuthGuard'
+import PremiumGate from '@/components/PremiumGate'
 
 export default function Home() {
   const [subjectCode, setSubjectCode] = useState('')
@@ -292,7 +292,7 @@ export default function Home() {
   }
 
   return (
-    <AuthGuard>
+    <PremiumGate>
       <div style={{ padding: '0 40px', paddingBottom: '100px' }}>
       <section style={{ textAlign: 'center', marginTop: '100px' }}>
         <h2 style={{ fontSize: '4rem', marginBottom: '10px' }} className="fade-in">
@@ -773,6 +773,6 @@ export default function Home() {
         </div>
       )}
       </div>
-    </AuthGuard>
+    </PremiumGate>
   )
 }

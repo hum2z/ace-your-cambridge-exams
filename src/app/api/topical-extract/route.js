@@ -611,38 +611,104 @@ export async function POST(request) {
         continue;
       }
 
-      // Step 7: Extract MS text and classify pages
-      const msPageTexts = await extractPagesText(msBuffer);
+      // Step 7: Extract MS page metadata and match by QUESTION NUMBER (not page number)
       const msPageMeta = await extractQuestionsMetadata(msBuffer);
 
       let msMatches = [];
 
-      // Try Groq classification first (with a small delay to avoid rate limiting)
-      await new Promise(r => setTimeout(r, 500));
+      // PRIMARY STRATEGY: Match MS pages by question number
+      // This is far more reliable than page-index mirroring or AI classification,
+      // because QP page 3 does NOT correspond to MS page 3 — but Question 3 in the
+      // QP always corresponds to Question 3 in the MS.
+      if (questionNumbers.length > 0) {
+        // Normalize the target question numbers (strip sub-parts like "4a" → "4")
+        const targetMainQNums = new Set(
+          questionNumbers.map(q => String(q).replace(/[^0-9]/g, ''))
+        );
 
-      try {
-        // Build MS prompt: use question numbers if available, otherwise classify by topic
-        let msPrompt;
-        if (questionNumbers.length > 0) {
-          msPrompt = `
-You are a Cambridge examiner assistant. You are given text extracted from a mark scheme called "${matchingMs.fileName}".
+        console.log(`[topical-extract] Looking for MS pages containing questions: [${[...targetMainQNums].join(', ')}] in ${matchingMs.fileName}`);
 
-Find the pages that contain the mark scheme for these specific question numbers: ${questionNumbers.join(', ')}
+        // Scan every MS page's metadata to find pages that contain any of our target question numbers
+        for (const pageMeta of msPageMeta) {
+          const pageQNums = pageMeta.questions.map(q => String(q.number));
+          const hasTargetQuestion = pageQNums.some(qn => targetMainQNums.has(qn));
 
-Return a JSON object:
-{
-  "matches": [
-    { "pageIndex": 5, "questionNumbers": ["3", "4a"] }
-  ]
-}
+          if (hasTargetQuestion) {
+            // Only include the question numbers we actually care about on this page
+            const matchedQNums = pageQNums.filter(qn => targetMainQNums.has(qn));
+            msMatches.push({
+              pageIndex: pageMeta.pageIndex + 1, // convert 0-based to 1-based
+              questionNumbers: matchedQNums
+            });
+          }
+        }
 
-If nothing matches, return: { "matches": [] }
+        // Also check for questions that span across pages (continuation pages).
+        // If question N starts on page X and continues onto page X+1, page X+1 might
+        // not have question N's number at the top. We detect this by checking if there's
+        // a gap: if we found Q3 on page 5 and Q4 on page 7, page 6 is likely a
+        // continuation of Q3.
+        if (msMatches.length > 0 && msPageMeta.length > 0) {
+          const matchedPageIndices = new Set(msMatches.map(m => m.pageIndex));
+          const continuationPages = [];
 
-PAGE TEXTS:
-${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('\n\n---\n\n')}
-`;
-        } else {
-          msPrompt = `
+          for (let i = 0; i < msPageMeta.length; i++) {
+            const pageIdx1Based = msPageMeta[i].pageIndex + 1;
+            if (matchedPageIndices.has(pageIdx1Based)) continue; // already matched
+
+            const pageQNums = msPageMeta[i].questions.map(q => String(q.number));
+            
+            // A continuation page typically has no new question number, or only has
+            // question numbers that are continuations of target questions.
+            // Check if the previous page is matched and the next question hasn't started yet.
+            if (matchedPageIndices.has(pageIdx1Based - 1)) {
+              // Find what the "current" question is from the previous matched page
+              const prevMatch = msMatches.find(m => m.pageIndex === pageIdx1Based - 1);
+              if (prevMatch) {
+                const lastQOnPrevPage = prevMatch.questionNumbers[prevMatch.questionNumbers.length - 1];
+                
+                // This page is a continuation if it has no questions, or its questions
+                // are still within our target set
+                if (pageQNums.length === 0) {
+                  continuationPages.push({
+                    pageIndex: pageIdx1Based,
+                    questionNumbers: [lastQOnPrevPage]
+                  });
+                } else {
+                  // Check if the first question on this page is still one of our targets
+                  // or if it's the same question continuing
+                  const firstQOnThisPage = pageQNums[0];
+                  if (targetMainQNums.has(firstQOnThisPage) && !matchedPageIndices.has(pageIdx1Based)) {
+                    // Already would be caught, but just in case
+                    continuationPages.push({
+                      pageIndex: pageIdx1Based,
+                      questionNumbers: pageQNums.filter(qn => targetMainQNums.has(qn))
+                    });
+                  }
+                }
+              }
+            }
+          }
+
+          msMatches.push(...continuationPages);
+          // Sort by page index for proper ordering
+          msMatches.sort((a, b) => a.pageIndex - b.pageIndex);
+        }
+
+        if (msMatches.length > 0) {
+          console.log(`[topical-extract] Question-number matching found ${msMatches.length} MS pages in ${matchingMs.fileName}: pages [${msMatches.map(m => m.pageIndex).join(', ')}]`);
+        }
+      }
+
+      // FALLBACK: If no question numbers were available from the QP, try Groq on the MS
+      if (msMatches.length === 0) {
+        console.log(`[topical-extract] No question numbers available for ${matchingMs.fileName}, falling back to Groq classification`);
+        
+        const msPageTexts = await extractPagesText(msBuffer);
+        await new Promise(r => setTimeout(r, 500));
+
+        try {
+          const msPrompt = `
 You are a Cambridge examiner assistant. You are given text extracted from a mark scheme called "${matchingMs.fileName}".
 
 The student wants mark scheme pages related to the topic: "${cleanTopic}"
@@ -652,7 +718,7 @@ Identify ONLY the pages that contain mark scheme answers related to "${cleanTopi
 Return a JSON object:
 {
   "matches": [
-    { "pageIndex": 5, "questionNumbers": [] }
+    { "pageIndex": 5, "questionNumbers": ["3"] }
   ]
 }
 
@@ -661,78 +727,41 @@ If nothing matches, return: { "matches": [] }
 PAGE TEXTS:
 ${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('\n\n---\n\n')}
 `;
-        }
 
-        const msRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: 'system', content: 'You are a JSON-only API assistant. Output ONLY valid JSON.' },
-              { role: 'user', content: msPrompt }
-            ],
-            response_format: { type: 'json_object' },
-            temperature: 0.1,
-          }),
-        });
+          const msRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model,
+              messages: [
+                { role: 'system', content: 'You are a JSON-only API assistant. Output ONLY valid JSON.' },
+                { role: 'user', content: msPrompt }
+              ],
+              response_format: { type: 'json_object' },
+              temperature: 0.1,
+            }),
+          });
 
-        if (msRes.ok) {
-          const msData = await msRes.json();
-          const msParsed = JSON.parse(msData.choices[0].message.content);
-          msMatches = msParsed.matches || [];
-          console.log(`[topical-extract] Groq found ${msMatches.length} MS pages in ${matchingMs.fileName}`);
-        } else {
-          console.warn(`[topical-extract] Groq MS request failed (${msRes.status}) for ${matchingMs.fileName}`);
-        }
-      } catch (err) {
-        console.warn(`[topical-extract] Groq MS classification error for ${matchingMs.fileName}:`, err.message);
-      }
-
-      // Fallback 1: keyword search on MS page text
-      if (msMatches.length === 0 && msPageTexts.length > 0) {
-        const topicLower = cleanTopic.toLowerCase();
-        const stem = topicLower.slice(0, Math.max(3, Math.floor(topicLower.length * 0.7)));
-        const syns = {
-          "kinematics": ["motion", "vector", "displacement"],
-          "dynamics": ["force", "newton", "momentum"],
-          "electricity": ["circuit", "current", "voltage", "resistance"],
-          "database": ["database", "table", "query", "record", "field", "sql", "primary key"],
-        };
-        const extra = syns[topicLower] || [];
-        const searchTerms = [topicLower, stem, ...extra];
-        msPageTexts.forEach((text, idx) => {
-          if (!text) return;
-          const lower = text.toLowerCase();
-          if (searchTerms.some(term => lower.includes(term))) {
-             msMatches.push({ pageIndex: idx + 1, questionNumbers: [] });
+          if (msRes.ok) {
+            const msData = await msRes.json();
+            const msParsed = JSON.parse(msData.choices[0].message.content);
+            msMatches = msParsed.matches || [];
+            console.log(`[topical-extract] Groq fallback found ${msMatches.length} MS pages in ${matchingMs.fileName}`);
           }
-        });
-        if (msMatches.length > 0) {
-          console.log(`[topical-extract] MS keyword fallback found ${msMatches.length} pages in ${matchingMs.fileName}`);
+        } catch (err) {
+          console.warn(`[topical-extract] Groq MS classification error for ${matchingMs.fileName}:`, err.message);
         }
-      }
-
-      // Fallback 2: use the same page indices as the QP (mark schemes often mirror QP structure)
-      if (msMatches.length === 0 && qpMatches.length > 0) {
-        const msTotalPages = msPageTexts.length || 0;
-        msMatches = qpMatches.filter(m => m.pageIndex >= 1 && m.pageIndex <= msTotalPages);
-        if (msMatches.length > 0) {
-          console.log(`[topical-extract] MS mirroring QP matches for ${matchingMs.fileName}`);
-        }
-      }
-      
-      // Ensure MS matches have question numbers populated
-      msMatches.forEach(m => {
+        
+        // Ensure fallback MS matches have question numbers populated from metadata
+        msMatches.forEach(m => {
           if (!m.questionNumbers || m.questionNumbers.length === 0) {
-              const meta = msPageMeta[m.pageIndex - 1];
-              if (meta && meta.questions.length > 0) {
-                  m.questionNumbers = meta.questions.map(q => q.number);
-              } else if (questionNumbers.length > 0) {
-                  m.questionNumbers = questionNumbers; // fallback to QP question numbers
-              }
+            const meta = msPageMeta[m.pageIndex - 1];
+            if (meta && meta.questions.length > 0) {
+              m.questionNumbers = meta.questions.map(q => q.number);
+            }
           }
-      });
+        });
+      }
 
       // Copy actual MS PDF pages (not re-drawn text) into the master MS document
       if (msMatches.length > 0) {
@@ -740,7 +769,7 @@ ${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('
         msPagesAdded += msAdded;
         console.log(`[topical-extract] Copied ${msAdded} actual MS pages from ${matchingMs.fileName}`);
       } else {
-        console.log(`[topical-extract] No MS pages found for ${matchingMs.fileName} after all fallbacks`);
+        console.log(`[topical-extract] No MS pages found for ${matchingMs.fileName} after all strategies`);
       }
     }
 

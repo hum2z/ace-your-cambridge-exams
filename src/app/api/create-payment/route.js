@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 const ZIINA_API_URL = "https://api-v2.ziina.com/api/payment_intent";
-const AMOUNT_FILS = 2000; // 20 AED in fils (1 AED = 100 fils)
-const CURRENCY = "AED";
+const AMOUNT_FILS = 500; // $5 USD in cents
+const CURRENCY = "USD";
 
 export async function POST(request) {
   try {
