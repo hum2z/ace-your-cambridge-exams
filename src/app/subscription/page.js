@@ -221,7 +221,7 @@ export default function SubscriptionPage() {
             </div>
           )}
 
-          {/* CTA Button */}
+          {/* CTA Buttons */}
           {isPremium ? (
             <button 
               type="button" 
@@ -233,25 +233,52 @@ export default function SubscriptionPage() {
               <Zap size={18} /> Renew Premium ($5)
             </button>
           ) : (
-            <button 
-              type="button" 
-              className="btn-premium" 
-              onClick={handleActivatePremium}
-              disabled={processing}
-              style={{ marginTop: '20px' }}
-              id="checkout-trigger-btn"
-            >
-              {processing ? (
-                <>
-                  <div style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderLeftColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                  Connecting to Ziina...
-                </>
-              ) : (
-                <>
-                  <CreditCard size={18} /> Activate Premium Pass
-                </>
-              )}
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px' }}>
+              {/* Apple Pay Button */}
+              <button 
+                type="button" 
+                className="btn-apple-pay" 
+                onClick={handleActivatePremium}
+                disabled={processing}
+                id="apple-pay-trigger-btn"
+              >
+                {processing ? (
+                  <>
+                    <div style={{ width: '18px', height: '18px', border: '2px solid rgba(0,0,0,0.3)', borderLeftColor: 'black', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 100 100" style={{ width: '20px', height: '20px', fill: 'currentColor', marginRight: '6px' }}>
+                      <path d="M78.6,56.8c0-8.9,7.3-13.2,7.6-13.4c-4.1-6.1-10.7-6.9-13-7c-5.5-0.6-10.8,3.3-13.6,3.3c-2.8,0-7.1-3.3-11.7-3.2 c-6,0.1-11.6,3.5-14.7,8.9c-6.3,10.9-1.6,27.1,4.5,35.9c3,4.3,6.5,9.1,11.2,8.9c4.5-0.2,6.2-2.9,11.6-2.9c5.4,0,7,2.9,11.7,2.8 c4.8-0.1,7.9-4.3,10.9-8.7c3.5-5.1,4.9-10,5-10.2C85.5,70.1,78.6,67.5,78.6,56.8z"/>
+                      <path d="M68.3,27.7c2.4-3,4.1-7.1,3.6-11.2c-3.5,0.1-7.8,2.4-10.3,5.3c-2.2,2.5-4.1,6.7-3.6,10.7 C61.9,32.7,65.9,30.6,68.3,27.7z"/>
+                    </svg>
+                    <span>Pay with Apple Pay</span>
+                  </>
+                )}
+              </button>
+
+              {/* General Card/GPay Button */}
+              <button 
+                type="button" 
+                className="btn-premium" 
+                onClick={handleActivatePremium}
+                disabled={processing}
+                id="checkout-trigger-btn"
+                style={{ marginTop: 0 }}
+              >
+                {processing ? (
+                  <>
+                    <div style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderLeftColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard size={18} /> Pay with Card / Google Pay
+                  </>
+                )}
+              </button>
+            </div>
           )}
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '20px', color: '#a0a0a0', fontSize: '0.8rem' }}>
