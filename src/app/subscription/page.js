@@ -48,9 +48,8 @@ export default function SubscriptionPage() {
       }
 
       if (data.redirect_url) {
-        // Set URL for inline checkout in iframe
-        setCheckoutUrl(data.redirect_url)
-        setIframeLoading(true)
+        // Redirect directly to payment portal to bypass X-Frame-Options / CSP restrictions on iframe embedding
+        window.location.href = data.redirect_url
       } else {
         throw new Error('No redirect URL received from payment service')
       }
