@@ -14,7 +14,7 @@ export default function Header() {
   return (
     <header className="glass-header">
       <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <Link href="/home" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
           <h1 style={{ fontSize: '1.5rem', letterSpacing: '-1px', margin: 0, cursor: 'pointer' }}>
             PAST<span style={{ color: '#0070f3' }}>PAPER</span>
           </h1>
@@ -23,15 +23,15 @@ export default function Header() {
 
       <nav className="nav-links">
         <Link 
-          href="/home" 
-          className={`nav-link ${isActive('/home') ? 'active' : ''}`}
+          href="/" 
+          className={`nav-link ${isActive('/') ? 'active' : ''}`}
           id="nav-link-home"
         >
           Home
         </Link>
         <Link 
-          href="/" 
-          className={`nav-link ${isActive('/') ? 'active' : ''}`}
+          href="/dashboard" 
+          className={`nav-link ${isActive('/dashboard') ? 'active' : ''}`}
           id="nav-link-study"
         >
           Study Companion

@@ -1,5 +1,5 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
-import { getFirestore, collection, addDoc, doc, getDoc, setDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, doc, getDoc, setDoc, query, where, getDocs } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
@@ -114,4 +114,49 @@ export const savePaperToFirebase = async (paper) => {
     throw error;
   }
 };
+
+export const saveTopicalToFirebase = async (userId, topical) => {
+  if (!db || !userId) return null;
+  try {
+    const docRef = await addDoc(collection(db, "papers"), {
+      userId,
+      type: "topical",
+      topic: topical.topic,
+      subjectCode: topical.subjectCode,
+      years: topical.years,
+      qpUrl: topical.qpUrl,
+      msUrl: topical.msUrl || null,
+      qpPagesFound: topical.qpPagesFound || 0,
+      msPagesFound: topical.msPagesFound || 0,
+      createdAt: new Date().toISOString()
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error("Error saving topical to Firestore:", error);
+    return null;
+  }
+};
+
+export const getSavedTopicals = async (userId) => {
+  if (!db || !userId) return [];
+  try {
+    // Simple query first to avoid requiring composite indexes immediately
+    const q = query(
+      collection(db, "papers"),
+      where("userId", "==", userId),
+      where("type", "==", "topical")
+    );
+    const querySnapshot = await getDocs(q);
+    const topicals = [];
+    querySnapshot.forEach((doc) => {
+      topicals.push({ id: doc.id, ...doc.data() });
+    });
+    // Sort in memory from newest to oldest
+    return topicals.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  } catch (error) {
+    console.error("Error fetching saved topicals:", error);
+    return [];
+  }
+};
+
 
