@@ -645,13 +645,7 @@ export default function Home() {
         </section>
       )}
 
-      {/* Floating Toggle Button */}
-      <button 
-        className="sidebar-toggle-btn"
-        onClick={() => setTutorSidebarOpen(!tutorSidebarOpen)}
-      >
-        {tutorSidebarOpen ? <X size={24} /> : <MessageSquare size={24} />}
-      </button>
+
 
       {/* Slide-out Sidebar Drawer (Chat History + Active Chat) */}
       <div className={`sidebar-drawer ${tutorSidebarOpen ? 'open' : ''}`}>
