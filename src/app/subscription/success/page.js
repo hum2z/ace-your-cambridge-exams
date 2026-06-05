@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { CheckCircle, XCircle, Loader2, ArrowRight, Sparkles } from 'lucide-react'
 import { Suspense } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { saveSubscription } from '@/lib/firebase'
 
 function SuccessContent() {
   const searchParams = useSearchParams()
@@ -14,6 +15,12 @@ function SuccessContent() {
   const [expiresAt, setExpiresAt] = useState(null)
 
   useEffect(() => {
+    // If running inside an iframe (the checkout modal), redirect the top-level parent page to this success page URL
+    if (typeof window !== 'undefined' && window.self !== window.top) {
+      window.top.location.href = window.location.href;
+      return;
+    }
+
     const pi = searchParams.get('pi')
     const uid = searchParams.get('uid')
 
@@ -33,14 +40,40 @@ function SuccessContent() {
           
           // Instantly activate premium locally in client state to bypass any database replication lag
           setIsPremium(true)
-          setSubscription({
+          const newSub = {
             status: 'active',
             expiresAt: data.expiresAt
-          })
+          }
+          setSubscription(newSub)
 
-          // Refresh from Firestore database to ensure persistence is fully synced
           const targetUid = uid || user?.uid
           if (targetUid) {
+            // Persist to localStorage first for instant reliability
+            if (typeof window !== 'undefined') {
+              try {
+                localStorage.setItem(`pastpaper_subscription_${targetUid}`, JSON.stringify(newSub))
+                console.log("Subscription saved to localStorage successfully.");
+              } catch (localErr) {
+                console.warn("Failed to write subscription to localStorage:", localErr);
+              }
+            }
+
+            // Save subscription status directly to Firestore from the client side
+            try {
+              const now = new Date();
+              const expiresAtDate = new Date(data.expiresAt || (now.getTime() + 30 * 24 * 60 * 60 * 1000));
+              await saveSubscription(targetUid, {
+                status: "active",
+                paymentIntentId: pi,
+                activatedAt: now.toISOString(),
+                expiresAt: expiresAtDate.toISOString(),
+                updatedAt: now.toISOString()
+              });
+              console.log("Subscription successfully persisted to Firestore from client-side.");
+            } catch (dbError) {
+              console.error("Failed to write subscription from client-side:", dbError);
+            }
+            // Refresh from Firestore database to ensure persistence is fully synced
             await refreshSubscription(targetUid)
           }
         } else {

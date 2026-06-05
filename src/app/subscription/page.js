@@ -10,6 +10,8 @@ export default function SubscriptionPage() {
   const router = useRouter()
   const [processing, setProcessing] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+  const [checkoutUrl, setCheckoutUrl] = useState(null)
+  const [iframeLoading, setIframeLoading] = useState(true)
 
   // FAQ accordion state
   const [openFaq, setOpenFaq] = useState(null)
@@ -46,8 +48,9 @@ export default function SubscriptionPage() {
       }
 
       if (data.redirect_url) {
-        // Redirect to Ziina hosted checkout
-        window.location.href = data.redirect_url
+        // Set URL for inline checkout in iframe
+        setCheckoutUrl(data.redirect_url)
+        setIframeLoading(true)
       } else {
         throw new Error('No redirect URL received from payment service')
       }
@@ -56,6 +59,12 @@ export default function SubscriptionPage() {
       setErrorMsg(error.message || 'Something went wrong. Please try again.')
       setProcessing(false)
     }
+  }
+
+  const handleCloseModal = () => {
+    setCheckoutUrl(null)
+    setIframeLoading(true)
+    setProcessing(false)
   }
 
   // Calculate days remaining for active subscription
@@ -318,6 +327,115 @@ export default function SubscriptionPage() {
           })}
         </div>
       </section>
+
+      {/* Inline Checkout Modal */}
+      {checkoutUrl && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(12px)',
+          animation: 'fadeIn 0.3s ease-out'
+        }}>
+          <div style={{
+            position: 'relative',
+            width: '90%',
+            maxWidth: '520px',
+            height: '80vh',
+            maxHeight: '700px',
+            background: 'rgba(10, 10, 10, 0.85)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '24px',
+            boxShadow: '0 25px 50px rgba(0,0,0,0.8), 0 0 35px rgba(0, 112, 243, 0.1)',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '18px 24px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+              background: 'rgba(255, 255, 255, 0.01)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Shield size={18} color="#0070f3" />
+                <span style={{ color: 'white', fontWeight: '600', fontSize: '0.95rem' }}>Secure Checkout</span>
+              </div>
+              <button
+                onClick={handleCloseModal}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#888',
+                  cursor: 'pointer',
+                  fontSize: '1.2rem',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'color 0.2s',
+                  outline: 'none'
+                }}
+                id="close-checkout-btn"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Iframe container */}
+            <div style={{ flex: 1, position: 'relative', background: '#ffffff' }}>
+              {iframeLoading && (
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  background: '#0a0a0a',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '16px'
+                }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    border: '3px solid rgba(0, 112, 243, 0.1)',
+                    borderLeftColor: '#0070f3',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }}></div>
+                  <span style={{ fontSize: '0.85rem', color: '#a0a0a0', letterSpacing: '0.5px' }}>Loading secure payment portal...</span>
+                </div>
+              )}
+              
+              <iframe
+                src={checkoutUrl}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  background: '#ffffff'
+                }}
+                allow="payment"
+                onLoad={() => setIframeLoading(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

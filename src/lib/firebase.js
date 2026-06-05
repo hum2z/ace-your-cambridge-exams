@@ -32,16 +32,44 @@ export { app, db, storage, auth, googleProvider };
 
 export const getSubscription = async (userId) => {
   if (!userId) return null;
+  
+  // 1. Try to read directly from Firestore client SDK first
+  try {
+    if (db) {
+      const docRef = doc(db, "subscriptions", userId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        console.log("Subscription loaded directly from Firestore:", docSnap.data());
+        return docSnap.data();
+      }
+    }
+  } catch (dbError) {
+    console.warn("Direct Firestore read failed, falling back to API:", dbError);
+  }
+
+  // 2. Fallback to server API (may fail if Admin SDK credentials are not configured)
   try {
     const response = await fetch(`/api/get-subscription?uid=${userId}`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch subscription: ${response.statusText}`);
+    if (response.ok) {
+      const data = await response.json();
+      return data.subscription || null;
     }
-    const data = await response.json();
-    return data.subscription || null;
   } catch (error) {
-    console.error("Error fetching subscription:", error);
-    return null;
+    // Silently ignore - direct Firestore read above is the primary path
+  }
+  return null;
+};
+
+export const saveSubscription = async (userId, data) => {
+  if (!userId || !db) return false;
+  try {
+    const docRef = doc(db, "subscriptions", userId);
+    await setDoc(docRef, data, { merge: true });
+    console.log("Subscription saved to Firestore successfully from client.");
+    return true;
+  } catch (error) {
+    console.error("Error saving subscription to Firestore from client:", error);
+    return false;
   }
 };
 

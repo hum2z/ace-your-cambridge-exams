@@ -26,14 +26,55 @@ export function AuthProvider({ children }) {
       setSubscription(null)
       return
     }
+
+    // Check local cache first
+    let localActive = false;
+    let cachedSub = null;
+    if (typeof window !== 'undefined') {
+      try {
+        const cachedStr = localStorage.getItem(`pastpaper_subscription_${userId}`);
+        if (cachedStr) {
+          cachedSub = JSON.parse(cachedStr);
+          if (isSubscriptionActive(cachedSub)) {
+            setSubscription(cachedSub);
+            setIsPremium(true);
+            localActive = true;
+            console.log("Subscription loaded from local cache:", cachedSub);
+          }
+        }
+      } catch (cacheErr) {
+        console.warn("Error reading subscription from localStorage:", cacheErr);
+      }
+    }
+
     try {
       const sub = await getSubscription(userId)
-      setSubscription(sub)
-      setIsPremium(isSubscriptionActive(sub))
+      if (sub) {
+        setSubscription(sub)
+        const active = isSubscriptionActive(sub)
+        setIsPremium(active)
+        
+        if (typeof window !== 'undefined') {
+          if (active) {
+            localStorage.setItem(`pastpaper_subscription_${userId}`, JSON.stringify(sub))
+          } else {
+            localStorage.removeItem(`pastpaper_subscription_${userId}`)
+          }
+        }
+      } else {
+        // If getSubscription returned null (e.g. database read failed or is empty),
+        // fallback to local active cache if it exists, otherwise reset premium.
+        if (!localActive) {
+          setSubscription(null)
+          setIsPremium(false)
+        }
+      }
     } catch (err) {
       console.error("Error checking subscription:", err)
-      setIsPremium(false)
-      setSubscription(null)
+      if (!localActive) {
+        setIsPremium(false)
+        setSubscription(null)
+      }
     }
   }, [])
 
