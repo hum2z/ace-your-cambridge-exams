@@ -66,7 +66,7 @@ export default function HomePage() {
               height: 'auto', 
               position: 'relative', 
               zIndex: 2,
-              filter: 'drop-shadow(0 30px 60px rgba(0,0,0,0.5))'
+              mixBlendMode: 'screen'
             }}
           />
         </div>
