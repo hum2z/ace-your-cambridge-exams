@@ -13,14 +13,12 @@ export default function HomePage() {
       <div className="grid-bg"></div>
       <div className="grid-lines"></div>
 
-      {/* Premium Purple Hero Section */}
+      {/* Premium Dark Hero Section (Reference Style) */}
       <section style={{ 
         position: 'relative', 
         width: '100%', 
         minHeight: '100vh', 
-        background: 'linear-gradient(160deg, #7c3aed 0%, #6d28d9 40%, #4c1d95 100%)', 
-        marginTop: '-100px', 
-        paddingTop: '140px', 
+        background: 'linear-gradient(135deg, #3E241B 0%, #1A0F0B 100%)', 
         display: 'flex', 
         flexDirection: 'column', 
         alignItems: 'center', 
@@ -28,55 +26,32 @@ export default function HomePage() {
         overflow: 'hidden' 
       }}>
 
-        {/* Social trust badge — top left */}
-        <div style={{ 
-          position: 'absolute',
-          top: '140px',
-          left: '40px',
-          display: 'flex', 
-          flexDirection: 'column',
-          gap: '10px',
-          zIndex: 10
-        }} className="fade-in">
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1a1a2e', border: '2px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold', color: '#a855f7' }}>✦</div>
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1a1a2e', border: '2px solid rgba(255,255,255,0.15)', marginLeft: '-10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold', color: '#c084fc' }}>✦</div>
-          </div>
-          <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.9)', fontWeight: '600' }}>
-            10k+ Students trust us
-          </span>
-        </div>
-
-        {/* Central book — dominant hero */}
-        <div style={{ 
-          position: 'relative',
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          width: '100%',
-          maxWidth: '550px',
-          zIndex: 3
-        }} className="float-anim">
-          <img 
-            src="/clean_book.png" 
-            alt="Open textbook" 
-            style={{ 
-              width: '100%', 
-              maxWidth: '500px', 
-              height: 'auto', 
-              position: 'relative', 
-              zIndex: 2,
-              mixBlendMode: 'screen'
-            }}
-          />
-        </div>
-
-        {/* Giant background text — overlapping behind the book */}
+        {/* Vertical SCROLL DOWN text on the left */}
         <div style={{
           position: 'absolute',
-          bottom: '8%',
+          left: '40px',
+          top: '50%',
+          transform: 'translateY(-50%) rotate(-90deg)',
+          transformOrigin: 'left center',
+          color: 'rgba(255,255,255,0.7)',
+          fontSize: '0.8rem',
+          fontWeight: '700',
+          letterSpacing: '4px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '20px',
+          zIndex: 10
+        }} className="fade-in">
+          <span>SCROLL DOWN</span>
+          <div style={{ width: '40px', height: '1px', background: 'rgba(255,255,255,0.7)' }}></div>
+        </div>
+
+        {/* Giant background text — solid white, massive */}
+        <div style={{
+          position: 'absolute',
+          top: '50%',
           left: '50%',
-          transform: 'translateX(-50%)',
+          transform: 'translate(-50%, -50%)',
           zIndex: 2,
           pointerEvents: 'none',
           userSelect: 'none',
@@ -84,32 +59,79 @@ export default function HomePage() {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          lineHeight: '0.9'
+          lineHeight: '0.85',
+          width: '100%'
         }}>
           <span style={{
-            fontSize: 'min(18vw, 14rem)',
+            fontSize: 'min(22vw, 18rem)',
             fontWeight: '900',
-            fontFamily: "'Outfit', sans-serif",
-            color: 'rgba(255, 255, 255, 0.1)',
-            letterSpacing: '-6px',
+            fontFamily: "'Inter', sans-serif",
+            color: '#FFFFFF',
+            letterSpacing: '-8px',
+            textShadow: '0 20px 50px rgba(0,0,0,0.3)'
           }}>
             ACE UR
           </span>
           <span style={{
-            fontSize: 'min(18vw, 14rem)',
+            fontSize: 'min(22vw, 18rem)',
             fontWeight: '900',
-            fontFamily: "'Outfit', sans-serif",
-            color: 'rgba(255, 255, 255, 0.1)',
-            letterSpacing: '-6px',
+            fontFamily: "'Inter', sans-serif",
+            color: '#FFFFFF',
+            letterSpacing: '-8px',
+            textShadow: '0 20px 50px rgba(0,0,0,0.3)'
           }}>
             EXAMS
           </span>
         </div>
 
+        {/* Central book — vertical and overlapping text */}
+        <div style={{ 
+          position: 'relative',
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          width: '100%',
+          maxWidth: '450px',
+          zIndex: 3,
+          marginTop: '20px'
+        }} className="float-anim">
+          <img 
+            src="/vertical_book_transparent.png" 
+            alt="Vertical textbook" 
+            style={{ 
+              width: '100%', 
+              height: 'auto', 
+              position: 'relative', 
+              zIndex: 3,
+              filter: 'drop-shadow(0 40px 80px rgba(0,0,0,0.8))'
+            }}
+          />
+        </div>
+
+        {/* Floating background chunks (mimicking reference style) */}
+        <div style={{
+          position: 'absolute', top: '15%', left: '20%', width: '80px', height: '80px', 
+          background: 'rgba(62, 36, 27, 0.9)', transform: 'rotate(25deg)', borderRadius: '12px',
+          boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5), 0 20px 40px rgba(0,0,0,0.4)', zIndex: 4, filter: 'blur(1px)'
+        }} className="float-anim-delay"></div>
+        
+        <div style={{
+          position: 'absolute', bottom: '15%', right: '15%', width: '120px', height: '100px', 
+          background: 'rgba(62, 36, 27, 0.95)', transform: 'rotate(-15deg)', borderRadius: '16px',
+          boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5), 0 30px 50px rgba(0,0,0,0.6)', zIndex: 4
+        }} className="float-anim"></div>
+
+        <div style={{
+          position: 'absolute', bottom: '25%', left: '25%', width: '60px', height: '50px', 
+          background: 'rgba(62, 36, 27, 0.8)', transform: 'rotate(45deg)', borderRadius: '8px',
+          boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5), 0 15px 30px rgba(0,0,0,0.3)', zIndex: 4
+        }} className="float-anim-delay"></div>
+
+
         {/* CTA button — bottom center */}
         <div style={{
           position: 'absolute',
-          bottom: '50px',
+          bottom: '60px',
           left: '50%',
           transform: 'translateX(-50%)',
           display: 'flex',
@@ -121,19 +143,21 @@ export default function HomePage() {
           {!loading && (
             <Link href={user ? "/dashboard" : "/login"}>
               <button style={{ 
-                padding: '16px 36px', 
+                padding: '16px 40px', 
                 borderRadius: '50px', 
                 fontSize: '1rem', 
                 fontWeight: '700', 
                 background: 'white', 
-                color: '#4c1d95',
+                color: '#1A0F0B',
                 border: 'none',
                 cursor: 'pointer',
-                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
-                transition: 'all 0.2s'
+                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+                transition: 'all 0.2s',
+                textTransform: 'uppercase',
+                letterSpacing: '1px'
               }}
-              onMouseEnter={(e) => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 12px 35px rgba(0,0,0,0.4)' }}
-              onMouseLeave={(e) => { e.target.style.transform = 'none'; e.target.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)' }}
+              onMouseEnter={(e) => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 12px 35px rgba(0,0,0,0.6)' }}
+              onMouseLeave={(e) => { e.target.style.transform = 'none'; e.target.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)' }}
               >
                 {user ? "Go to Dashboard" : "GET STARTED"}
               </button>
