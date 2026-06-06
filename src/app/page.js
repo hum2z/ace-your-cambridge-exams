@@ -58,7 +58,7 @@ export default function HomePage() {
           zIndex: 3
         }} className="float-anim">
           <img 
-            src="/clean_book.png" 
+            src="/clean_book.jpg" 
             alt="Open textbook" 
             style={{ 
               width: '100%', 
