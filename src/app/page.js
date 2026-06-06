@@ -17,222 +17,184 @@ export default function HomePage() {
       <section style={{ 
         position: 'relative', 
         width: '100%', 
-        minHeight: '95vh', 
-        background: 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)', 
+        minHeight: '100vh', 
+        background: 'linear-gradient(160deg, #7c3aed 0%, #6d28d9 40%, #4c1d95 100%)', 
         marginTop: '-100px', 
-        paddingTop: '160px', 
-        paddingBottom: '80px',
+        paddingTop: '140px', 
         display: 'flex', 
         flexDirection: 'column', 
         alignItems: 'center', 
-        justifyContent: 'center',
+        justifyContent: 'flex-end',
         overflow: 'hidden' 
       }}>
-        {/* Giant background text (behind book, centered) */}
-        <div style={{
+
+        {/* Social trust badge — top left floating */}
+        <div style={{ 
           position: 'absolute',
-          bottom: '8%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          fontSize: 'min(18vw, 15rem)',
-          fontWeight: '900',
-          fontFamily: "'Outfit', sans-serif",
-          color: 'rgba(255, 255, 255, 0.08)',
-          letterSpacing: '-6px',
-          userSelect: 'none',
-          zIndex: 1,
-          whiteSpace: 'nowrap',
-          pointerEvents: 'none'
-        }}>
-          CAMBRIDGE
+          top: '140px',
+          left: '40px',
+          display: 'flex', 
+          flexDirection: 'column',
+          gap: '10px',
+          zIndex: 10
+        }} className="fade-in">
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1a1a2e', border: '2px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold', color: '#a855f7' }}>✦</div>
+            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1a1a2e', border: '2px solid rgba(255,255,255,0.15)', marginLeft: '-10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold', color: '#c084fc' }}>✦</div>
+          </div>
+          <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.9)', fontWeight: '600' }}>
+            10k+ Students trust us
+          </span>
         </div>
 
-        {/* Content grid */}
+        {/* Small hanging card — top right */}
         <div style={{ 
-          width: '100%', 
-          maxWidth: '1200px', 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          padding: '0 40px',
-          position: 'relative',
-          zIndex: 2,
-          flexWrap: 'wrap',
-          gap: '40px'
-        }}>
-          {/* Left Column: Social proof & CTA Info */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', flex: '1 1 300px', maxWidth: '400px' }} className="fade-in">
-            {/* Social trust badge */}
-            <div style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '12px',
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '50px',
-              padding: '8px 16px',
-              alignSelf: 'flex-start'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#a855f7', border: '2px solid #7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 'bold' }}>A</div>
-                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#c084fc', border: '2px solid #7c3aed', marginLeft: '-8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 'bold' }}>B</div>
-                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#e9d5ff', border: '2px solid #7c3aed', marginLeft: '-8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 'bold' }}>C</div>
-              </div>
-              <span style={{ fontSize: '0.8rem', color: '#f3f4f6', fontWeight: '600', letterSpacing: '0.2px' }}>
-                10k+ Cambridge students trust us
-              </span>
-            </div>
-
-            {/* Core Titles */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <h1 style={{ 
-                fontSize: '3.8rem', 
-                lineHeight: '1.05', 
-                fontWeight: '900', 
-                color: 'white',
-                letterSpacing: '-2px',
-                margin: 0
-              }}>
-                Ace Cambridge <br/>
-                Exams with <span style={{ color: '#e9d5ff' }}>AI Intel</span>
-              </h1>
-              <p style={{ 
-                fontSize: '1.1rem', 
-                color: 'rgba(255, 255, 255, 0.85)', 
-                margin: 0, 
-                lineHeight: '1.6',
-                maxWidth: '360px'
-              }}>
-                Extract topical past papers instantly, generate examiner intelligence reports, and study with an active AI Tutor 24/7.
-              </p>
-            </div>
-
-            {/* Action buttons */}
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '8px' }}>
-              {!loading && (
-                <Link href={user ? "/dashboard" : "/login"}>
-                  <button className="btn-primary" style={{ 
-                    padding: '16px 36px', 
-                    borderRadius: '50px', 
-                    fontSize: '1rem', 
-                    fontWeight: '700', 
-                    background: 'white', 
-                    color: '#4c1d95',
-                    border: 'none',
-                    cursor: 'pointer',
-                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 12px 30px rgba(0,0,0,0.3)' }}
-                  onMouseLeave={(e) => { e.target.style.transform = 'none'; e.target.style.boxShadow = '0 10px 25px rgba(0,0,0,0.25)' }}
-                  >
-                    {user ? "Go to Dashboard" : "Launch Study Engine"}
-                  </button>
-                </Link>
-              )}
-              <Link href="/subscription">
-                <button className="btn-secondary" style={{ 
-                  padding: '16px 36px', 
-                  borderRadius: '50px', 
-                  fontSize: '1rem', 
-                  fontWeight: '700', 
-                  background: 'rgba(255,255,255,0.15)', 
-                  border: '1px solid rgba(255,255,255,0.3)', 
-                  color: 'white', 
-                  cursor: 'pointer', 
-                  transition: 'all 0.2s' 
-                }} 
-                onMouseEnter={(e) => { e.target.style.background = 'rgba(255,255,255,0.25)'; e.target.style.transform = 'translateY(-2px)' }} 
-                onMouseLeave={(e) => { e.target.style.background = 'rgba(255,255,255,0.15)'; e.target.style.transform = 'none' }}
-                >
-                  View Premium
-                </button>
-              </Link>
-            </div>
-          </div>
-
-          {/* Center Column: Floating Neon Book */}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            position: 'relative',
-            flex: '1 1 350px',
-            minHeight: '380px'
-          }} className="float-anim">
-            {/* Big radial soft purple glow */}
-            <div style={{
-              position: 'absolute',
-              width: '450px',
-              height: '450px',
-              background: 'radial-gradient(circle, rgba(168,85,247,0.45) 0%, transparent 70%)',
-              filter: 'blur(30px)',
-              zIndex: 0
-            }}></div>
-
+          position: 'absolute',
+          top: '120px',
+          right: '40px',
+          zIndex: 10,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center'
+        }} className="float-anim-delay fade-in">
+          <div style={{
+            width: '1px',
+            height: '40px',
+            background: 'linear-gradient(to bottom, rgba(255,255,255,0.5), rgba(255,255,255,0))',
+          }}></div>
+          <div style={{
+            width: '160px',
+            background: 'rgba(10, 10, 10, 0.85)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '16px',
+            padding: '10px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(15px)'
+          }}>
             <img 
-              src="/purple_neon_book.png" 
-              alt="Futuristic neon book" 
+              src="/purple_ai_tutor.png" 
+              alt="AI Study Companion" 
               style={{ 
                 width: '100%', 
-                maxWidth: '360px', 
-                height: 'auto', 
-                position: 'relative', 
-                zIndex: 2,
-                filter: 'drop-shadow(0 25px 50px rgba(0,0,0,0.55))'
+                borderRadius: '10px', 
+                aspectRatio: '1', 
+                objectFit: 'cover'
               }}
             />
-          </div>
-
-          {/* Right Column: Floating AI Tutor Card */}
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            flex: '1 1 200px',
-            maxWidth: '240px'
-          }} className="float-anim-delay">
-            {/* Hanging cord line */}
-            <div style={{
-              width: '1px',
-              height: '50px',
-              background: 'linear-gradient(to bottom, rgba(255,255,255,0.4), rgba(255,255,255,0))',
-              marginBottom: '10px'
-            }}></div>
-
-            {/* Glass container */}
-            <div style={{
-              width: '100%',
-              background: 'rgba(10, 10, 10, 0.8)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: '20px',
-              padding: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-              boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
-              backdropFilter: 'blur(15px)'
-            }}>
-              <img 
-                src="/purple_ai_tutor.png" 
-                alt="Active AI Tutor" 
-                style={{ 
-                  width: '100%', 
-                  borderRadius: '14px', 
-                  aspectRatio: '1', 
-                  objectFit: 'cover'
-                }}
-              />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '0 4px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'white', letterSpacing: '0.5px' }}>
-                  ACTIVE TUTOR
-                </span>
-                <span style={{ fontSize: '0.7rem', color: '#c084fc', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 8px #10b981' }}></span> ONLINE NOW
-                </span>
-              </div>
+            <div style={{ padding: '0 2px' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: '800', color: 'white', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                AI STUDY ENGINE
+              </span>
+              <br/>
+              <span style={{ fontSize: '0.6rem', color: '#a78bfa', fontWeight: '600' }}>
+                PASTPAPER
+              </span>
             </div>
           </div>
+        </div>
+
+        {/* Central book — the dominant hero element */}
+        <div style={{ 
+          position: 'relative',
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'flex-end', 
+          width: '100%',
+          maxWidth: '650px',
+          flex: '1',
+          zIndex: 3,
+          paddingBottom: '0'
+        }} className="float-anim">
+          {/* Radial glow behind book */}
+          <div style={{
+            position: 'absolute',
+            width: '550px',
+            height: '550px',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: 'radial-gradient(circle, rgba(168,85,247,0.5) 0%, rgba(124,58,237,0.2) 40%, transparent 70%)',
+            filter: 'blur(40px)',
+            zIndex: 0,
+            pointerEvents: 'none'
+          }}></div>
+
+          <img 
+            src="/purple_neon_book.png" 
+            alt="Futuristic neon book" 
+            style={{ 
+              width: '100%', 
+              maxWidth: '480px', 
+              height: 'auto', 
+              position: 'relative', 
+              zIndex: 2,
+              filter: 'drop-shadow(0 30px 60px rgba(0,0,0,0.6))',
+              marginBottom: '-40px'
+            }}
+          />
+        </div>
+
+        {/* Giant overlapping text at the bottom — like "AGENCY" in the reference */}
+        <div style={{
+          position: 'relative',
+          width: '100%',
+          zIndex: 4,
+          overflow: 'hidden',
+          lineHeight: '0.85',
+          paddingBottom: '20px'
+        }}>
+          <div style={{
+            fontSize: 'min(20vw, 18rem)',
+            fontWeight: '900',
+            fontFamily: "'Outfit', sans-serif",
+            color: 'rgba(255, 255, 255, 0.12)',
+            letterSpacing: '-8px',
+            userSelect: 'none',
+            textAlign: 'center',
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            lineHeight: '0.85'
+          }}>
+            STUDY
+          </div>
+        </div>
+
+        {/* CTA button floating at the bottom center */}
+        <div style={{
+          position: 'absolute',
+          bottom: '50px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: '16px',
+          zIndex: 10,
+          flexWrap: 'wrap',
+          justifyContent: 'center'
+        }} className="fade-in">
+          {!loading && (
+            <Link href={user ? "/dashboard" : "/login"}>
+              <button style={{ 
+                padding: '16px 36px', 
+                borderRadius: '50px', 
+                fontSize: '1rem', 
+                fontWeight: '700', 
+                background: 'white', 
+                color: '#4c1d95',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 12px 35px rgba(0,0,0,0.4)' }}
+              onMouseLeave={(e) => { e.target.style.transform = 'none'; e.target.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)' }}
+              >
+                {user ? "Go to Dashboard" : "GET STARTED"}
+              </button>
+            </Link>
+          )}
         </div>
       </section>
 
