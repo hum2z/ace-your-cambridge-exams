@@ -1,8 +1,8 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { auth, googleProvider, getSubscription, isSubscriptionActive } from '@/lib/firebase'
-import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth'
+import { auth, googleProvider, getSubscription, isSubscriptionActive, saveSubscription } from '@/lib/firebase'
+import { signInWithPopup, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
 
 const AuthContext = createContext({
   user: null,
@@ -116,6 +116,65 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const loginWithEmail = async (email, password) => {
+    try {
+      setLoading(true)
+      const result = await signInWithEmailAndPassword(auth, email, password)
+      return result.user
+    } catch (error) {
+      console.error("Error signing in with email:", error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const signUpWithEmail = async (email, password) => {
+    try {
+      setLoading(true)
+      const result = await createUserWithEmailAndPassword(auth, email, password)
+      const newUser = result.user
+
+      // Grant a 30-day trial subscription automatically
+      const now = new Date()
+      const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+      const trialSub = {
+        status: 'active',
+        plan: 'trial',
+        startDate: now.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        createdAt: now.toISOString(),
+        grantedAutomatically: true
+      }
+
+      try {
+        await saveSubscription(newUser.uid, trialSub)
+        console.log('30-day trial subscription created for new user:', newUser.uid)
+      } catch (subError) {
+        console.error('Failed to create trial subscription:', subError)
+      }
+
+      // Also cache locally for instant premium access
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(`pastpaper_subscription_${newUser.uid}`, JSON.stringify(trialSub))
+        } catch (cacheErr) {
+          console.warn('Failed to cache trial subscription locally:', cacheErr)
+        }
+      }
+
+      setSubscription(trialSub)
+      setIsPremium(true)
+
+      return newUser
+    } catch (error) {
+      console.error("Error signing up with email:", error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const logout = async () => {
     try {
       setLoading(true)
@@ -132,7 +191,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, isPremium, subscription, setIsPremium, setSubscription, loginWithGoogle, logout, refreshSubscription }}>
+    <AuthContext.Provider value={{ user, loading, isPremium, subscription, setIsPremium, setSubscription, loginWithGoogle, loginWithEmail, signUpWithEmail, logout, refreshSubscription }}>
       {children}
     </AuthContext.Provider>
   )
