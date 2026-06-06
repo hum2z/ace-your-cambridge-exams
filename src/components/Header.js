@@ -16,7 +16,7 @@ export default function Header() {
       <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
           <h1 style={{ fontSize: '1.5rem', letterSpacing: '-1px', margin: 0, cursor: 'pointer' }}>
-            PAST<span style={{ color: '#0070f3' }}>PAPER</span>
+            PAST<span style={{ color: 'var(--accent-primary)' }}>PAPER</span>
           </h1>
         </Link>
       </div>
@@ -107,7 +107,7 @@ export default function Header() {
                 gap: '6px',
                 fontSize: '0.85rem',
                 fontWeight: '600',
-                background: 'linear-gradient(135deg, #0070f3, #0051a8)'
+                background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))'
               }}
             >
               <LogIn size={14} />

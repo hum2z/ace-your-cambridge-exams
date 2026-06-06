@@ -8,66 +8,231 @@ export default function HomePage() {
   const { user, loading } = useAuth()
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', minHeight: '100vh', padding: '0 24px', paddingBottom: '120px' }}>
+    <div style={{ position: 'relative', overflow: 'hidden', minHeight: '100vh', paddingBottom: '120px' }}>
       {/* Visual background accents */}
       <div className="grid-bg"></div>
       <div className="grid-lines"></div>
 
-      {/* Hero Section */}
-      <section style={{ maxWidth: '1000px', margin: '120px auto 0', textAlign: 'center', position: 'relative', zIndex: 1 }}>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '8px', 
-          background: 'rgba(0,112,243,0.1)', 
-          border: '1px solid rgba(0,112,243,0.2)',
-          borderRadius: '50px',
-          padding: '8px 16px',
-          marginBottom: '24px',
-          color: '#0070f3',
-          fontSize: '0.9rem',
-          fontWeight: '600',
-          animation: 'fadeIn 0.6s ease'
+      {/* Redesigned Premium Purple Hero Section */}
+      <section style={{ 
+        position: 'relative', 
+        width: '100%', 
+        minHeight: '95vh', 
+        background: 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)', 
+        marginTop: '-100px', 
+        paddingTop: '160px', 
+        paddingBottom: '80px',
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        overflow: 'hidden' 
+      }}>
+        {/* Giant background text (behind book, centered) */}
+        <div style={{
+          position: 'absolute',
+          bottom: '8%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          fontSize: 'min(18vw, 15rem)',
+          fontWeight: '900',
+          fontFamily: "'Outfit', sans-serif",
+          color: 'rgba(255, 255, 255, 0.08)',
+          letterSpacing: '-6px',
+          userSelect: 'none',
+          zIndex: 1,
+          whiteSpace: 'nowrap',
+          pointerEvents: 'none'
         }}>
-          <Sparkles size={14} /> Incorporating Llama 3.3 Study Engine
+          CAMBRIDGE
         </div>
 
-        <h1 style={{ 
-          fontSize: '4.5rem', 
-          lineHeight: '1.1', 
-          letterSpacing: '-2px', 
-          marginBottom: '20px',
-          background: 'linear-gradient(to right, #ffffff, #a0a0a0)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent'
-        }} className="fade-in">
-          Ace Your Cambridge <br/>
-          Exams with <span style={{ background: 'linear-gradient(to right, #0070f3, #7928ca)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AI Intelligence</span>
-        </h1>
+        {/* Content grid */}
+        <div style={{ 
+          width: '100%', 
+          maxWidth: '1200px', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          padding: '0 40px',
+          position: 'relative',
+          zIndex: 2,
+          flexWrap: 'wrap',
+          gap: '40px'
+        }}>
+          {/* Left Column: Social proof & CTA Info */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', flex: '1 1 300px', maxWidth: '400px' }} className="fade-in">
+            {/* Social trust badge */}
+            <div style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '12px',
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '50px',
+              padding: '8px 16px',
+              alignSelf: 'flex-start'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#a855f7', border: '2px solid #7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 'bold' }}>A</div>
+                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#c084fc', border: '2px solid #7c3aed', marginLeft: '-8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 'bold' }}>B</div>
+                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#e9d5ff', border: '2px solid #7c3aed', marginLeft: '-8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 'bold' }}>C</div>
+              </div>
+              <span style={{ fontSize: '0.8rem', color: '#f3f4f6', fontWeight: '600', letterSpacing: '0.2px' }}>
+                10k+ Cambridge students trust us
+              </span>
+            </div>
 
-        <p style={{ 
-          color: '#a0a0a0', 
-          fontSize: '1.25rem', 
-          maxWidth: '650px', 
-          margin: '0 auto 40px',
-          lineHeight: '1.6'
-        }} className="fade-in">
-          Extract topical past papers instantly, generate examiner intelligence reports, and study with an expert AI Tutor 24/7.
-        </p>
+            {/* Core Titles */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <h1 style={{ 
+                fontSize: '3.8rem', 
+                lineHeight: '1.05', 
+                fontWeight: '900', 
+                color: 'white',
+                letterSpacing: '-2px',
+                margin: 0
+              }}>
+                Ace Cambridge <br/>
+                Exams with <span style={{ color: '#e9d5ff' }}>AI Intel</span>
+              </h1>
+              <p style={{ 
+                fontSize: '1.1rem', 
+                color: 'rgba(255, 255, 255, 0.85)', 
+                margin: 0, 
+                lineHeight: '1.6',
+                maxWidth: '360px'
+              }}>
+                Extract topical past papers instantly, generate examiner intelligence reports, and study with an active AI Tutor 24/7.
+              </p>
+            </div>
 
-        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }} className="fade-in">
-          {!loading && (
-            <Link href={user ? "/dashboard" : "/login"}>
-              <button className="btn-primary" style={{ padding: '16px 36px', borderRadius: '50px', fontSize: '1rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 8px 30px rgba(0,112,243,0.4)' }}>
-                {user ? "Go to Dashboard" : "Launch Study Engine"} <ChevronRight size={16} />
-              </button>
-            </Link>
-          )}
-          <Link href="/subscription">
-            <button className="btn-secondary" style={{ padding: '16px 36px', borderRadius: '50px', fontSize: '1rem', fontWeight: '700', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.05)'}>
-              View Premium Plan
-            </button>
-          </Link>
+            {/* Action buttons */}
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '8px' }}>
+              {!loading && (
+                <Link href={user ? "/dashboard" : "/login"}>
+                  <button className="btn-primary" style={{ 
+                    padding: '16px 36px', 
+                    borderRadius: '50px', 
+                    fontSize: '1rem', 
+                    fontWeight: '700', 
+                    background: 'white', 
+                    color: '#4c1d95',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 12px 30px rgba(0,0,0,0.3)' }}
+                  onMouseLeave={(e) => { e.target.style.transform = 'none'; e.target.style.boxShadow = '0 10px 25px rgba(0,0,0,0.25)' }}
+                  >
+                    {user ? "Go to Dashboard" : "Launch Study Engine"}
+                  </button>
+                </Link>
+              )}
+              <Link href="/subscription">
+                <button className="btn-secondary" style={{ 
+                  padding: '16px 36px', 
+                  borderRadius: '50px', 
+                  fontSize: '1rem', 
+                  fontWeight: '700', 
+                  background: 'rgba(255,255,255,0.15)', 
+                  border: '1px solid rgba(255,255,255,0.3)', 
+                  color: 'white', 
+                  cursor: 'pointer', 
+                  transition: 'all 0.2s' 
+                }} 
+                onMouseEnter={(e) => { e.target.style.background = 'rgba(255,255,255,0.25)'; e.target.style.transform = 'translateY(-2px)' }} 
+                onMouseLeave={(e) => { e.target.style.background = 'rgba(255,255,255,0.15)'; e.target.style.transform = 'none' }}
+                >
+                  View Premium
+                </button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Center Column: Floating Neon Book */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            position: 'relative',
+            flex: '1 1 350px',
+            minHeight: '380px'
+          }} className="float-anim">
+            {/* Big radial soft purple glow */}
+            <div style={{
+              position: 'absolute',
+              width: '450px',
+              height: '450px',
+              background: 'radial-gradient(circle, rgba(168,85,247,0.45) 0%, transparent 70%)',
+              filter: 'blur(30px)',
+              zIndex: 0
+            }}></div>
+
+            <img 
+              src="/purple_neon_book.png" 
+              alt="Futuristic neon book" 
+              style={{ 
+                width: '100%', 
+                maxWidth: '360px', 
+                height: 'auto', 
+                position: 'relative', 
+                zIndex: 2,
+                filter: 'drop-shadow(0 25px 50px rgba(0,0,0,0.55))'
+              }}
+            />
+          </div>
+
+          {/* Right Column: Floating AI Tutor Card */}
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            flex: '1 1 200px',
+            maxWidth: '240px'
+          }} className="float-anim-delay">
+            {/* Hanging cord line */}
+            <div style={{
+              width: '1px',
+              height: '50px',
+              background: 'linear-gradient(to bottom, rgba(255,255,255,0.4), rgba(255,255,255,0))',
+              marginBottom: '10px'
+            }}></div>
+
+            {/* Glass container */}
+            <div style={{
+              width: '100%',
+              background: 'rgba(10, 10, 10, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '20px',
+              padding: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(15px)'
+            }}>
+              <img 
+                src="/purple_ai_tutor.png" 
+                alt="Active AI Tutor" 
+                style={{ 
+                  width: '100%', 
+                  borderRadius: '14px', 
+                  aspectRatio: '1', 
+                  objectFit: 'cover'
+                }}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '0 4px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'white', letterSpacing: '0.5px' }}>
+                  ACTIVE TUTOR
+                </span>
+                <span style={{ fontSize: '0.7rem', color: '#c084fc', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 8px #10b981' }}></span> ONLINE NOW
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
