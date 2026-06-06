@@ -13,7 +13,7 @@ export default function HomePage() {
       <div className="grid-bg"></div>
       <div className="grid-lines"></div>
 
-      {/* Redesigned Premium Purple Hero Section */}
+      {/* Premium Purple Hero Section */}
       <section style={{ 
         position: 'relative', 
         width: '100%', 
@@ -24,11 +24,11 @@ export default function HomePage() {
         display: 'flex', 
         flexDirection: 'column', 
         alignItems: 'center', 
-        justifyContent: 'flex-end',
+        justifyContent: 'center',
         overflow: 'hidden' 
       }}>
 
-        {/* Social trust badge — top left floating */}
+        {/* Social trust badge — top left */}
         <div style={{ 
           position: 'absolute',
           top: '140px',
@@ -47,122 +47,66 @@ export default function HomePage() {
           </span>
         </div>
 
-        {/* Small hanging card — top right */}
-        <div style={{ 
-          position: 'absolute',
-          top: '120px',
-          right: '40px',
-          zIndex: 10,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center'
-        }} className="float-anim-delay fade-in">
-          <div style={{
-            width: '1px',
-            height: '40px',
-            background: 'linear-gradient(to bottom, rgba(255,255,255,0.5), rgba(255,255,255,0))',
-          }}></div>
-          <div style={{
-            width: '160px',
-            background: 'rgba(10, 10, 10, 0.85)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            borderRadius: '16px',
-            padding: '10px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(15px)'
-          }}>
-            <img 
-              src="/purple_ai_tutor.png" 
-              alt="AI Study Companion" 
-              style={{ 
-                width: '100%', 
-                borderRadius: '10px', 
-                aspectRatio: '1', 
-                objectFit: 'cover'
-              }}
-            />
-            <div style={{ padding: '0 2px' }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: '800', color: 'white', letterSpacing: '1px', textTransform: 'uppercase' }}>
-                AI STUDY ENGINE
-              </span>
-              <br/>
-              <span style={{ fontSize: '0.6rem', color: '#a78bfa', fontWeight: '600' }}>
-                PASTPAPER
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Central book — the dominant hero element */}
+        {/* Central book — dominant hero */}
         <div style={{ 
           position: 'relative',
           display: 'flex', 
           justifyContent: 'center', 
-          alignItems: 'flex-end', 
+          alignItems: 'center', 
           width: '100%',
-          maxWidth: '650px',
-          flex: '1',
-          zIndex: 3,
-          paddingBottom: '0'
+          maxWidth: '550px',
+          zIndex: 3
         }} className="float-anim">
-          {/* Radial glow behind book */}
-          <div style={{
-            position: 'absolute',
-            width: '550px',
-            height: '550px',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            background: 'radial-gradient(circle, rgba(168,85,247,0.5) 0%, rgba(124,58,237,0.2) 40%, transparent 70%)',
-            filter: 'blur(40px)',
-            zIndex: 0,
-            pointerEvents: 'none'
-          }}></div>
-
           <img 
-            src="/purple_neon_book.png" 
-            alt="Futuristic neon book" 
+            src="/clean_book.png" 
+            alt="Open textbook" 
             style={{ 
               width: '100%', 
-              maxWidth: '480px', 
+              maxWidth: '500px', 
               height: 'auto', 
               position: 'relative', 
               zIndex: 2,
-              filter: 'drop-shadow(0 30px 60px rgba(0,0,0,0.6))',
-              marginBottom: '-40px'
+              filter: 'drop-shadow(0 30px 60px rgba(0,0,0,0.5))'
             }}
           />
         </div>
 
-        {/* Giant overlapping text at the bottom — like "AGENCY" in the reference */}
+        {/* Giant background text — overlapping behind the book */}
         <div style={{
-          position: 'relative',
-          width: '100%',
-          zIndex: 4,
-          overflow: 'hidden',
-          lineHeight: '0.85',
-          paddingBottom: '20px'
+          position: 'absolute',
+          bottom: '8%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 2,
+          pointerEvents: 'none',
+          userSelect: 'none',
+          whiteSpace: 'nowrap',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          lineHeight: '0.9'
         }}>
-          <div style={{
-            fontSize: 'min(20vw, 18rem)',
+          <span style={{
+            fontSize: 'min(18vw, 14rem)',
             fontWeight: '900',
             fontFamily: "'Outfit', sans-serif",
-            color: 'rgba(255, 255, 255, 0.12)',
-            letterSpacing: '-8px',
-            userSelect: 'none',
-            textAlign: 'center',
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-            lineHeight: '0.85'
+            color: 'rgba(255, 255, 255, 0.1)',
+            letterSpacing: '-6px',
           }}>
-            STUDY
-          </div>
+            ACE UR
+          </span>
+          <span style={{
+            fontSize: 'min(18vw, 14rem)',
+            fontWeight: '900',
+            fontFamily: "'Outfit', sans-serif",
+            color: 'rgba(255, 255, 255, 0.1)',
+            letterSpacing: '-6px',
+          }}>
+            EXAMS
+          </span>
         </div>
 
-        {/* CTA button floating at the bottom center */}
+        {/* CTA button — bottom center */}
         <div style={{
           position: 'absolute',
           bottom: '50px',
