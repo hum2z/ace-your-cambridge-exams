@@ -27,15 +27,15 @@ export async function POST(request) {
 
 You have full access to all Question Papers and Mark Schemes for subject code "${cleanCode}", topic "${topic}", across years ${yearRange}.
 
-Generate a JSON object with exactly these keys and **plain text** values (no markdown, no extra characters):
+Generate a JSON object with exactly these keys and **plain text** values (no markdown formatting like bold/italics, but use clear line breaks, bullet points, and spacing for readability):
 - subjectCode
 - topic
 - yearsAnalyzed
-- mostRepeatedQuestions
-- scoringKeywords
-- examinerExpectations
-- commonMistakes
-- highYieldTips
+- mostRepeatedQuestions: Detailed list of common/frequent question types on this topic, their mark allocations, and how the mark scheme structures points.
+- scoringKeywords: An exhaustive, highly detailed guide of the specific keywords, technical terms, and phrases that the marking scheme ALWAYS requires for this topic. Include what words/phrases students MUST write to secure marks, how marks are awarded for specific terms, and which common alternative or vague terms are explicitly rejected by examiners (e.g., 'accept X, do not accept Y').
+- examinerExpectations: Step-by-step breakdown of what examiners expect in candidate answers. Detail how marks are distributed (e.g., method marks vs. accuracy marks, formula/substitution scoring, units, error carried forward rules) and how to structure responses to score maximum marks.
+- commonMistakes: Specific list of errors candidates make in this topic that cause them to lose marks, referencing examiner report feedback (e.g., wrong units, missing steps, vague descriptions).
+- highYieldTips: Actionable exam techniques and strategies to maximize scoring potential specifically for this topic under exam conditions.
 
 Return ONLY the JSON object, no surrounding text or markdown fences.`;
 
