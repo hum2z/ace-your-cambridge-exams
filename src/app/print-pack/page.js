@@ -55,7 +55,7 @@ function PrintPackContent() {
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0a0a', color: 'white', fontFamily: 'sans-serif' }}>
-        <div style={{ border: '4px solid rgba(255,255,255,0.1)', width: '48px', height: '48px', borderRadius: '50%', borderLeftColor: '#0070f3', animation: 'spin 1s linear infinite' }}></div>
+        <div style={{ border: '4px solid rgba(255,255,255,0.1)', width: '48px', height: '48px', borderRadius: '50%', borderLeftColor: '#ff461a', animation: 'spin 1s linear infinite' }}></div>
         <h2 style={{ marginTop: '20px', fontWeight: '500' }}>Compiling PDF Exam Pack...</h2>
         <p style={{ color: '#a0a0a0', fontSize: '0.9rem' }}>Gathering syllabus parameters, questions, and mark schemes for {subjectCode}</p>
         <style dangerouslySetInnerHTML={{__html: `
@@ -158,7 +158,7 @@ function PrintPackContent() {
       {/* Custom Stylesheet */}
       <style dangerouslySetInnerHTML={{__html: `
         :root {
-          --primary: #0070f3;
+          --primary: #ff461a;
           --border: #e0e0e0;
           --text: #222222;
         }
@@ -220,7 +220,7 @@ function PrintPackContent() {
         }
 
         .btn-print:hover {
-          background: #005bc2;
+          background: #bf260c;
         }
 
         /* Printable Page Layout */

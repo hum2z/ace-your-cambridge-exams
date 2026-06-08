@@ -115,9 +115,9 @@ export default function DashboardPage() {
   const handleSendMessage = async (e) => {
     e.preventDefault()
     if (!chatInput) return
-    
+
     const userMsg = { role: 'user', text: chatInput }
-    
+
     // Append user message
     setChatSessions(prev => prev.map(session => {
       if (session.id === activeSessionId) {
@@ -133,10 +133,10 @@ export default function DashboardPage() {
       }
       return session
     }))
-    
+
     const currentInput = chatInput
     setChatInput('')
-    
+
     try {
       const response = await askTutor(currentInput, `Subject: ${subjectCode || 'General Cambridge Study'}`)
       setChatSessions(prev => prev.map(session => {
@@ -212,7 +212,7 @@ export default function DashboardPage() {
 
     setCompilingPdfs(true)
     showToast(`Fetching ${cleanCode} ${compilationYear} papers... This may take ~20 seconds.`, 'info')
-    
+
     try {
       // Fetch Question Papers
       const qpRes = await fetch('/api/compile-pdfs', {
@@ -220,9 +220,9 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subjectCode: cleanCode, year: compilationYear, type: 'qp' })
       })
-      
+
       if (!qpRes.ok) throw new Error((await qpRes.json()).error || 'Failed to compile Question Papers')
-      
+
       const qpBlob = await qpRes.blob()
       const qpUrl = window.URL.createObjectURL(qpBlob)
       const qpLink = document.createElement('a')
@@ -240,9 +240,9 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subjectCode: cleanCode, year: compilationYear, type: 'ms' })
       })
-      
+
       if (!msRes.ok) throw new Error((await msRes.json()).error || 'Failed to compile Mark Schemes')
-      
+
       const msBlob = await msRes.blob()
       const msUrl = window.URL.createObjectURL(msBlob)
       const msLink = document.createElement('a')
@@ -336,25 +336,66 @@ export default function DashboardPage() {
 
   return (
     <PremiumGate>
-      <div style={{ padding: '0 40px', paddingBottom: '100px' }}>
+      <div className="site-page" style={{ paddingBottom: '100px' }}>
         {/* Decorative Grid Accents */}
         <div className="grid-bg"></div>
         <div className="grid-lines"></div>
 
-        <section style={{ textAlign: 'center', marginTop: '100px' }}>
-          <h2 style={{ fontSize: '4rem', marginBottom: '10px' }} className="fade-in">
-            Unlock Your <span style={{ color: '#0070f3' }}>Potential</span>
-          </h2>
-          <p style={{ color: '#a0a0a0', fontSize: '1.2rem', marginBottom: '40px' }} className="fade-in">
-            Generate custom topical notes and get dynamic syllabus insights with advanced AI.
+        <section className="site-section split-section" style={{ alignItems: 'end' }}>
+          <div>
+            <p className="section-kicker">Study dashboard</p>
+            <h1 className="section-heading fade-in">
+              Build the exact pack you need.
+            </h1>
+          </div>
+          <p className="section-copy fade-in">
+            Extract topical questions, generate examiner notes, compile yearly PDFs, and keep the tutor one tap away.
           </p>
         </section>
 
+        <section className="site-section" style={{ marginTop: '28px' }}>
+          <div className="panel" style={{ display: 'grid', gap: '18px' }}>
+            <form onSubmit={handleSearch} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '12px', alignItems: 'end' }}>
+              <label>
+                <span className="section-kicker" style={{ marginBottom: 8, display: 'block' }}>Subject code</span>
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="9702, 9701, 9709..."
+                  value={subjectCode}
+                  onChange={(e) => setSubjectCode(e.target.value)}
+                />
+              </label>
+              <button type="submit" className="btn-primary" disabled={loading || !subjectCode.trim()} style={{ minWidth: 190, width: '100%' }}>
+                {loading ? 'Generating...' : <><Sparkles size={18} /> Generate Insights</>}
+              </button>
+            </form>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '12px', alignItems: 'end' }}>
+              <label>
+                <span className="section-kicker" style={{ marginBottom: 8, display: 'block' }}>Paper year</span>
+                <select
+                  className="search-input"
+                  value={compilationYear}
+                  onChange={(e) => setCompilationYear(Number(e.target.value))}
+                >
+                  {[2023, 2022, 2021, 2020, 2019, 2018].map((year) => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </label>
+              <button type="button" onClick={handleCompilePdfs} className="btn-ghost" disabled={compilingPdfs || !subjectCode.trim()} style={{ width: '100%' }}>
+                {compilingPdfs ? 'Compiling...' : <><Printer size={18} /> Compile Question Papers and Mark Schemes</>}
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* Topical Snippet Extractor Card */}
-        <section id="topical-extractor-card" style={{ maxWidth: '900px', margin: '40px auto 0' }} className="fade-in">
-          <div className="premium-card" style={{ padding: '30px', border: '1px solid rgba(147,51,234,0.3)', background: 'rgba(147,51,234,0.05)' }}>
+        <section id="topical-extractor-card" className="site-section fade-in" style={{ marginTop: '40px' }}>
+          <div className="premium-card" style={{ padding: '30px', border: '1px solid rgba(255,209,102,0.3)', background: 'rgba(255,209,102,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <BookCopy size={22} color="#a855f7" />
+              <BookCopy size={22} color="#ffd166" />
               <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'white' }}>Topical Snippet Extractor</h3>
             </div>
             <p style={{ color: '#a0a0a0', fontSize: '0.9rem', marginBottom: '24px' }}>
@@ -426,9 +467,9 @@ export default function DashboardPage() {
                       style={{
                         padding: '8px 16px',
                         borderRadius: '8px',
-                        border: selectedYears.includes(y) ? '1px solid #a855f7' : '1px solid #333',
-                        background: selectedYears.includes(y) ? 'rgba(168,85,247,0.15)' : 'transparent',
-                        color: selectedYears.includes(y) ? '#a855f7' : '#a0a0a0',
+                        border: selectedYears.includes(y) ? '1px solid #ffd166' : '1px solid #333',
+                        background: selectedYears.includes(y) ? 'rgba(255,209,102,0.15)' : 'transparent',
+                        color: selectedYears.includes(y) ? '#ffd166' : '#a0a0a0',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -446,7 +487,7 @@ export default function DashboardPage() {
 
               {/* Status text */}
               {extractStatus && (
-                <p style={{ fontSize: '0.85rem', color: '#a855f7', margin: 0 }}>{extractStatus}</p>
+                <p style={{ fontSize: '0.85rem', color: '#ffd166', margin: 0 }}>{extractStatus}</p>
               )}
 
               {/* Action buttons row */}
@@ -458,8 +499,8 @@ export default function DashboardPage() {
                   disabled={extracting || !topicInput.trim() || selectedYears.length === 0}
                   style={{
                     padding: '14px 28px',
-                    borderRadius: '12px',
-                    background: extracting ? 'rgba(168,85,247,0.2)' : 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                    borderRadius: '8px',
+                    background: extracting ? 'rgba(255,209,102,0.2)' : 'linear-gradient(135deg, #ff7a1a, #ffd166)',
                     border: 'none',
                     color: 'white',
                     fontWeight: '700',
@@ -487,7 +528,7 @@ export default function DashboardPage() {
                   disabled={generatingNotes || !subjectCode.trim() || !topicInput.trim()}
                   style={{
                     padding: '14px 28px',
-                    borderRadius: '12px',
+                    borderRadius: '8px',
                     background: generatingNotes ? 'rgba(0,230,118,0.15)' : 'linear-gradient(135deg, #00b86b, #00e676)',
                     border: 'none',
                     color: generatingNotes ? '#aaa' : '#000',
@@ -510,16 +551,16 @@ export default function DashboardPage() {
                 </button>
               </div>
             </div>
-            
+
             {extractedFiles && (
               <div style={{ display: 'flex', gap: '15px', marginTop: '20px', flexWrap: 'wrap' }} className="fade-in">
                 {extractedFiles.qpUrl && (
-                  <button type="button" onClick={() => downloadFile(extractedFiles.qpUrl, extractedFiles.qpName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #0070f3, #0051a8)' }}>
+                  <button type="button" onClick={() => downloadFile(extractedFiles.qpUrl, extractedFiles.qpName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #ff461a, #bf260c)' }}>
                     <Download size={16} style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline-block' }} /> Download Question Paper
                   </button>
                 )}
                 {extractedFiles.msUrl && (
-                  <button type="button" onClick={() => downloadFile(extractedFiles.msUrl, extractedFiles.msName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #7928ca, #4c1187)' }}>
+                  <button type="button" onClick={() => downloadFile(extractedFiles.msUrl, extractedFiles.msName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #7a1806, #5f1408)' }}>
                     <Download size={16} style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline-block' }} /> Download Mark Scheme
                   </button>
                 )}
@@ -531,15 +572,15 @@ export default function DashboardPage() {
         {/* Saved Topicals Library Section */}
         <section style={{ maxWidth: '900px', margin: '40px auto 0' }} className="fade-in">
           <div style={{
-            padding: '30px', 
-            borderRadius: '24px', 
-            background: 'rgba(5, 5, 5, 0.6)', 
+            padding: '30px',
+            borderRadius: '8px',
+            background: 'rgba(5, 5, 5, 0.6)',
             border: '1px solid rgba(255, 255, 255, 0.05)',
             backdropFilter: 'blur(10px)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Layers size={22} color="#0070f3" />
+                <Layers size={22} color="#ff461a" />
                 <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'white' }}>📚 My Compiled Library</h3>
               </div>
               <span style={{ fontSize: '0.8rem', color: '#666' }}>
@@ -549,11 +590,11 @@ export default function DashboardPage() {
 
             {loadingSaved ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '10px' }}>
-                <Loader className="spin" size={18} color="#0070f3" />
+                <Loader className="spin" size={18} color="#ff461a" />
                 <span style={{ color: '#a0a0a0', fontSize: '0.9rem' }}>Loading saved topicals...</span>
               </div>
             ) : savedTopicals.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', border: '1px dashed rgba(255,255,255,0.06)', borderRadius: '16px' }}>
+              <div style={{ textAlign: 'center', padding: '40px 20px', border: '1px dashed rgba(255,255,255,0.06)', borderRadius: '8px' }}>
                 <BookCopy size={32} color="#444" style={{ marginBottom: '12px' }} />
                 <p style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>No compiled booklets in your library yet.</p>
                 <p style={{ margin: '4px 0 0 0', color: '#444', fontSize: '0.8rem' }}>Extract a topic using the tool above to save it here automatically.</p>
@@ -561,8 +602,8 @@ export default function DashboardPage() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {savedTopicals.map((topical) => (
-                  <div 
-                    key={topical.id} 
+                  <div
+                    key={topical.id}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -570,7 +611,7 @@ export default function DashboardPage() {
                       padding: '16px 20px',
                       background: 'rgba(255, 255, 255, 0.02)',
                       border: '1px solid rgba(255, 255, 255, 0.04)',
-                      borderRadius: '16px',
+                      borderRadius: '8px',
                       flexWrap: 'wrap',
                       gap: '15px',
                       transition: 'all 0.2s'
@@ -580,7 +621,7 @@ export default function DashboardPage() {
                   >
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ background: 'rgba(0, 112, 243, 0.15)', color: '#0070f3', fontSize: '0.75rem', fontWeight: '700', padding: '2px 8px', borderRadius: '4px' }}>
+                        <span style={{ background: 'rgba(255, 70, 26, 0.15)', color: '#ff461a', fontSize: '0.75rem', fontWeight: '700', padding: '2px 8px', borderRadius: '4px' }}>
                           {topical.subjectCode}
                         </span>
                         <h4 style={{ margin: 0, color: 'white', fontSize: '1rem', fontWeight: '600' }}>
@@ -598,12 +639,12 @@ export default function DashboardPage() {
 
                     <div style={{ display: 'flex', gap: '10px' }}>
                       {topical.qpUrl && (
-                        <button 
+                        <button
                           onClick={() => downloadFile(topical.qpUrl, `${topical.subjectCode}_${topical.topic.replace(/\s+/g, '_')}_Questions.pdf`)}
                           style={{
-                            background: 'rgba(0, 112, 243, 0.1)',
-                            border: '1px solid rgba(0, 112, 243, 0.2)',
-                            color: '#0070f3',
+                            background: 'rgba(255, 70, 26, 0.1)',
+                            border: '1px solid rgba(255, 70, 26, 0.2)',
+                            color: '#ff461a',
                             borderRadius: '8px',
                             padding: '8px 14px',
                             fontSize: '0.8rem',
@@ -614,19 +655,19 @@ export default function DashboardPage() {
                             gap: '6px',
                             transition: 'all 0.2s'
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0, 112, 243, 0.2)'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0, 112, 243, 0.1)'}
+                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 70, 26, 0.2)'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 70, 26, 0.1)'}
                         >
                           <Download size={12} /> QP
                         </button>
                       )}
                       {topical.msUrl && (
-                        <button 
+                        <button
                           onClick={() => downloadFile(topical.msUrl, `${topical.subjectCode}_${topical.topic.replace(/\s+/g, '_')}_MarkScheme.pdf`)}
                           style={{
                             background: 'rgba(168, 85, 247, 0.1)',
                             border: '1px solid rgba(168, 85, 247, 0.2)',
-                            color: '#a855f7',
+                            color: '#ffd166',
                             borderRadius: '8px',
                             padding: '8px 14px',
                             fontSize: '0.8rem',
@@ -739,7 +780,7 @@ export default function DashboardPage() {
 
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '60px' }} className="fade-in">
-            <div className="spinner" style={{ border: '4px solid rgba(255,255,255,0.1)', width: '36px', height: '36px', borderRadius: '50%', borderLeftColor: '#0070f3', animation: 'spin 1s linear infinite' }}></div>
+            <div className="spinner" style={{ border: '4px solid rgba(255,255,255,0.1)', width: '36px', height: '36px', borderRadius: '50%', borderLeftColor: '#ff461a', animation: 'spin 1s linear infinite' }}></div>
             <p style={{ marginTop: '15px', color: '#a0a0a0' }}>Compiling syllabus insights using Llama 3.3...</p>
           </div>
         )}
@@ -749,19 +790,19 @@ export default function DashboardPage() {
             <div className="premium-card" style={{ padding: '30px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Sparkles color="#0070f3" size={24} />
+                  <Sparkles color="#ff461a" size={24} />
                   <h3 style={{ fontSize: '2rem', margin: 0 }}>Syllabus Insights for {subjectCode}</h3>
                 </div>
-                <button 
+                <button
                   onClick={() => window.open(`/print-pack?subjectCode=${subjectCode}`, '_blank')}
-                  className="btn-primary" 
-                  style={{ 
-                    borderRadius: '50px', 
-                    padding: '10px 24px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px', 
-                    background: 'linear-gradient(135deg, #0070f3, #005bc2)', 
+                  className="btn-primary"
+                  style={{
+                    borderRadius: '8px',
+                    padding: '10px 24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: 'linear-gradient(135deg, #ff461a, #bf260c)',
                     fontWeight: '600',
                     fontSize: '0.9rem',
                     border: 'none'
@@ -773,19 +814,19 @@ export default function DashboardPage() {
 
               {/* Insights Tabs */}
               <div className="insights-tab-container">
-                <button 
+                <button
                   className={`insights-tab ${activeInsightTab === 'repeated' ? 'active' : ''}`}
                   onClick={() => setActiveInsightTab('repeated')}
                 >
                   📋 Most Repeated Questions
                 </button>
-                <button 
+                <button
                   className={`insights-tab ${activeInsightTab === 'keywords' ? 'active' : ''}`}
                   onClick={() => setActiveInsightTab('keywords')}
                 >
                   🔑 Keywords to Use
                 </button>
-                <button 
+                <button
                   className={`insights-tab ${activeInsightTab === 'notes' ? 'active' : ''}`}
                   onClick={() => setActiveInsightTab('notes')}
                 >
@@ -819,7 +860,7 @@ export default function DashboardPage() {
         <div className={`sidebar-drawer ${tutorSidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Cpu color="#0070f3" size={20} />
+              <Cpu color="#ff461a" size={20} />
               <span style={{ fontWeight: '600', color: 'white' }}>AI Tutor Workspace</span>
             </div>
             <button className="sidebar-close-btn" onClick={() => setTutorSidebarOpen(false)}>
@@ -834,11 +875,11 @@ export default function DashboardPage() {
           </button>
 
           {/* Collapsible Session List Header */}
-          <div 
-            style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               cursor: 'pointer',
               padding: '5px 0 10px',
               color: '#a0a0a0',
@@ -858,8 +899,8 @@ export default function DashboardPage() {
           {showHistoryList && (
             <div className="chat-history-list">
               {chatSessions.map((session) => (
-                <div 
-                  key={session.id} 
+                <div
+                  key={session.id}
                   className={`chat-session-item ${session.id === activeSessionId ? 'active' : ''}`}
                   onClick={() => {
                     setActiveSessionId(session.id)
@@ -877,15 +918,15 @@ export default function DashboardPage() {
             <div style={{ fontSize: '0.75rem', color: '#a0a0a0', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
               Active: {activeSession.title}
             </div>
-            
+
             <div style={{ flex: 1, overflowY: 'auto', marginBottom: '15px', paddingRight: '5px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {chatMessages.map((msg, i) => (
                 <div key={i} style={{ textAlign: msg.role === 'user' ? 'right' : 'left' }}>
-                  <div style={{ 
-                    display: 'inline-block', 
-                    padding: '10px 14px', 
-                    borderRadius: '12px', 
-                    background: msg.role === 'user' ? '#0070f3' : 'rgba(255,255,255,0.05)',
+                  <div style={{
+                    display: 'inline-block',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: msg.role === 'user' ? '#ff461a' : 'rgba(255,255,255,0.05)',
                     color: msg.role === 'user' ? 'white' : '#e0e0e0',
                     fontSize: '0.85rem',
                     lineHeight: '1.4',
@@ -900,20 +941,29 @@ export default function DashboardPage() {
             </div>
 
             <form onSubmit={handleSendMessage} style={{ position: 'relative', marginTop: 'auto' }}>
-              <input 
-                type="text" 
-                className="search-input" 
-                style={{ padding: '12px 45px 12px 16px', fontSize: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '10px' }} 
+              <input
+                type="text"
+                className="search-input"
+                style={{ padding: '12px 45px 12px 16px', fontSize: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}
                 placeholder="Ask a syllabus doubt..."
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
               />
-              <button type="submit" style={{ position: 'absolute', right: '12px', top: '12px', background: 'transparent', border: 'none', color: '#0070f3', cursor: 'pointer' }}>
+              <button type="submit" style={{ position: 'absolute', right: '12px', top: '12px', background: 'transparent', border: 'none', color: '#ff461a', cursor: 'pointer' }}>
                 <Send size={18} />
               </button>
             </form>
           </div>
         </div>
+
+        <button
+          type="button"
+          className="sidebar-toggle-btn"
+          onClick={() => setTutorSidebarOpen(true)}
+          aria-label="Open AI tutor"
+        >
+          <Cpu size={24} />
+        </button>
 
         {/* Toast Notifications */}
         {toast.show && (
@@ -922,10 +972,10 @@ export default function DashboardPage() {
             top: '30px',
             left: '50%',
             transform: 'translateX(-50%)',
-            background: toast.type === 'success' ? '#00e676' : toast.type === 'info' ? '#0070f3' : '#ff1744',
+            background: toast.type === 'success' ? '#00e676' : toast.type === 'info' ? '#ff461a' : '#ff1744',
             color: 'white',
             padding: '12px 24px',
-            borderRadius: '12px',
+            borderRadius: '8px',
             zIndex: 2000,
             fontWeight: '600',
             boxShadow: '0 4px 20px rgba(0,0,0,0.3)',

@@ -22,32 +22,20 @@ export default function AuthGuard({ children }) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#050505',
-        color: '#ffffff',
+        background: 'var(--bg-color)',
+        color: 'var(--text-primary)',
         fontFamily: 'Inter, sans-serif'
       }}>
-        {/* Glowing glass loader container */}
-        <div style={{
-          padding: '40px',
-          borderRadius: '24px',
-          background: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-          backdropFilter: 'blur(12px)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '20px',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.6)'
-        }}>
+        <div className="panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
           <div style={{
             width: '40px',
             height: '40px',
             borderRadius: '50%',
-            border: '3px solid rgba(0, 112, 243, 0.1)',
-            borderLeftColor: '#0070f3',
+            border: '3px solid rgba(255, 70, 26, 0.1)',
+            borderLeftColor: '#ff461a',
             animation: 'spin 1s linear infinite'
           }}></div>
-          <span style={{ fontSize: '0.9rem', color: '#a0a0a0', letterSpacing: '1px', fontWeight: '500' }}>
+          <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: '800' }}>
             VERIFYING SESSION...
           </span>
         </div>
