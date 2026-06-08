@@ -20,7 +20,7 @@ export default function PremiumGate({ children }) {
     return (
       <div style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <div className="panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid rgba(37, 99, 235,0.1)', borderLeftColor: '#2563eb', animation: 'spin 1s linear infinite' }}></div>
+          <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid rgba(96, 165, 250,0.1)', borderLeftColor: 'var(--accent-primary)', animation: 'spin 1s linear infinite' }}></div>
           <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: '800' }}>LOADING...</span>
         </div>
       </div>
@@ -36,8 +36,8 @@ export default function PremiumGate({ children }) {
         <div className="grid-lines"></div>
         
         <div className="panel" style={{ width: '100%', maxWidth: '500px', textAlign: 'center' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '70px', height: '70px', borderRadius: '8px', background: 'rgba(37, 99, 235,0.14)', marginBottom: '24px' }}>
-            <Lock size={32} color="#2563eb" />
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '70px', height: '70px', borderRadius: '8px', background: 'rgba(96, 165, 250,0.14)', marginBottom: '24px' }}>
+            <Lock size={32} color="var(--accent-primary)" />
           </div>
 
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(15, 118, 110,0.12)', border: '1px solid rgba(15, 118, 110,0.24)', borderRadius: '8px', padding: '8px 12px', color: '#0f766e', fontSize: '0.8rem', fontWeight: '800', marginBottom: '20px' }}>
@@ -54,7 +54,7 @@ export default function PremiumGate({ children }) {
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '20px', marginBottom: '28px', textAlign: 'left' }}>
             {['Unlimited Topical Extractions', 'AI Study Tutor 24/7', 'Examiner Intelligence Reports', 'Priority Server Speed'].map((f, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                <Sparkles size={14} color="#2563eb" /> {f}
+                <Sparkles size={14} color="var(--accent-primary)" /> {f}
               </div>
             ))}
           </div>

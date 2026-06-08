@@ -531,7 +531,7 @@ export default function DashboardPage() {
                     borderRadius: '8px',
                     background: generatingNotes ? 'rgba(0,230,118,0.15)' : 'linear-gradient(135deg, #00b86b, #0f9f6e)',
                     border: 'none',
-                    color: generatingNotes ? '#aaa' : '#000',
+                    color: generatingNotes ? 'var(--text-muted)' : '#06101d',
                     fontWeight: '700',
                     fontSize: '1rem',
                     cursor: (generatingNotes || !subjectCode.trim() || !topicInput.trim()) ? 'not-allowed' : 'pointer',
@@ -544,7 +544,7 @@ export default function DashboardPage() {
                   }}
                 >
                   {generatingNotes ? (
-                    <><div style={{ width: '18px', height: '18px', border: '2px solid rgba(0,0,0,0.2)', borderLeftColor: '#000', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div> Analyzing Papers...</>
+                    <><div style={{ width: '18px', height: '18px', border: '2px solid rgba(0,0,0,0.2)', borderLeftColor: '#06101d', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div> Analyzing Papers...</>
                   ) : (
                     <><FileText size={18} /> Generate Notes</>
                   )}
@@ -555,7 +555,7 @@ export default function DashboardPage() {
             {extractedFiles && (
               <div style={{ display: 'flex', gap: '15px', marginTop: '20px', flexWrap: 'wrap' }} className="fade-in">
                 {extractedFiles.qpUrl && (
-                  <button type="button" onClick={() => downloadFile(extractedFiles.qpUrl, extractedFiles.qpName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)' }}>
+                  <button type="button" onClick={() => downloadFile(extractedFiles.qpUrl, extractedFiles.qpName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, var(--accent-primary), #1d4ed8)' }}>
                     <Download size={16} style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline-block' }} /> Download Question Paper
                   </button>
                 )}
@@ -580,7 +580,7 @@ export default function DashboardPage() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Layers size={22} color="#2563eb" />
+                <Layers size={22} color="var(--accent-primary)" />
                 <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--text-primary)' }}>📚 My Compiled Library</h3>
               </div>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -590,7 +590,7 @@ export default function DashboardPage() {
 
             {loadingSaved ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '10px' }}>
-                <Loader className="spin" size={18} color="#2563eb" />
+                <Loader className="spin" size={18} color="var(--accent-primary)" />
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Loading saved topicals...</span>
               </div>
             ) : savedTopicals.length === 0 ? (
@@ -621,7 +621,7 @@ export default function DashboardPage() {
                   >
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ background: 'rgba(37, 99, 235, 0.15)', color: '#2563eb', fontSize: '0.75rem', fontWeight: '700', padding: '2px 8px', borderRadius: '4px' }}>
+                        <span style={{ background: 'rgba(96, 165, 250, 0.15)', color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: '700', padding: '2px 8px', borderRadius: '4px' }}>
                           {topical.subjectCode}
                         </span>
                         <h4 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1rem', fontWeight: '600' }}>
@@ -642,9 +642,9 @@ export default function DashboardPage() {
                         <button
                           onClick={() => downloadFile(topical.qpUrl, `${topical.subjectCode}_${topical.topic.replace(/\s+/g, '_')}_Questions.pdf`)}
                           style={{
-                            background: 'rgba(37, 99, 235, 0.1)',
-                            border: '1px solid rgba(37, 99, 235, 0.2)',
-                            color: '#2563eb',
+                            background: 'rgba(96, 165, 250, 0.1)',
+                            border: '1px solid rgba(96, 165, 250, 0.2)',
+                            color: 'var(--accent-primary)',
                             borderRadius: '8px',
                             padding: '8px 14px',
                             fontSize: '0.8rem',
@@ -655,8 +655,8 @@ export default function DashboardPage() {
                             gap: '6px',
                             transition: 'all 0.2s'
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(37, 99, 235, 0.2)'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(37, 99, 235, 0.1)'}
+                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(96, 165, 250, 0.2)'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(96, 165, 250, 0.1)'}
                         >
                           <Download size={12} /> QP
                         </button>
@@ -780,7 +780,7 @@ export default function DashboardPage() {
 
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '60px' }} className="fade-in">
-            <div className="spinner" style={{ border: '4px solid rgba(255,255,255,0.1)', width: '36px', height: '36px', borderRadius: '50%', borderLeftColor: '#2563eb', animation: 'spin 1s linear infinite' }}></div>
+            <div className="spinner" style={{ border: '4px solid rgba(255,255,255,0.1)', width: '36px', height: '36px', borderRadius: '50%', borderLeftColor: 'var(--accent-primary)', animation: 'spin 1s linear infinite' }}></div>
             <p style={{ marginTop: '15px', color: 'var(--text-secondary)' }}>Compiling syllabus insights using Llama 3.3...</p>
           </div>
         )}
@@ -790,7 +790,7 @@ export default function DashboardPage() {
             <div className="premium-card" style={{ padding: '30px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Sparkles color="#2563eb" size={24} />
+                  <Sparkles color="var(--accent-primary)" size={24} />
                   <h3 style={{ fontSize: '2rem', margin: 0 }}>Syllabus Insights for {subjectCode}</h3>
                 </div>
                 <button
@@ -802,7 +802,7 @@ export default function DashboardPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                    background: 'linear-gradient(135deg, var(--accent-primary), #1d4ed8)',
                     fontWeight: '600',
                     fontSize: '0.9rem',
                     border: 'none'
@@ -860,7 +860,7 @@ export default function DashboardPage() {
         <div className={`sidebar-drawer ${tutorSidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Cpu color="#2563eb" size={20} />
+              <Cpu color="var(--accent-primary)" size={20} />
               <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>AI Tutor Workspace</span>
             </div>
             <button className="sidebar-close-btn" onClick={() => setTutorSidebarOpen(false)}>
@@ -926,7 +926,7 @@ export default function DashboardPage() {
                     display: 'inline-block',
                     padding: '10px 14px',
                     borderRadius: '8px',
-                    background: msg.role === 'user' ? '#2563eb' : 'rgba(255,255,255,0.05)',
+                    background: msg.role === 'user' ? 'var(--accent-primary)' : 'rgba(255,255,255,0.05)',
                     color: msg.role === 'user' ? 'white' : 'var(--text-secondary)',
                     fontSize: '0.85rem',
                     lineHeight: '1.4',
@@ -949,7 +949,7 @@ export default function DashboardPage() {
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
               />
-              <button type="submit" style={{ position: 'absolute', right: '12px', top: '12px', background: 'transparent', border: 'none', color: '#2563eb', cursor: 'pointer' }}>
+              <button type="submit" style={{ position: 'absolute', right: '12px', top: '12px', background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer' }}>
                 <Send size={18} />
               </button>
             </form>
@@ -972,7 +972,7 @@ export default function DashboardPage() {
             top: '30px',
             left: '50%',
             transform: 'translateX(-50%)',
-            background: toast.type === 'success' ? '#0f9f6e' : toast.type === 'info' ? '#2563eb' : '#dc2626',
+            background: toast.type === 'success' ? '#0f9f6e' : toast.type === 'info' ? 'var(--accent-primary)' : '#dc2626',
             color: 'white',
             padding: '12px 24px',
             borderRadius: '8px',

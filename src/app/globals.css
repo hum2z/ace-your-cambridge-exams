@@ -1,21 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  --bg-color: #f4f7fb;
-  --bg-elevated: #ffffff;
-  --bg-panel: rgba(255, 255, 255, 0.88);
-  --accent-primary: #2563eb;
-  --accent-secondary: #0f766e;
-  --accent-soft: #7c3aed;
-  --success: #0f9f6e;
-  --danger: #dc2626;
-  --warning: #d97706;
-  --text-primary: #102033;
-  --text-secondary: #50657d;
-  --text-muted: #7b8da3;
-  --card-bg: rgba(255, 255, 255, 0.86);
-  --card-border: rgba(16, 32, 51, 0.12);
-  --glass-bg: rgba(255, 255, 255, 0.9);
+  --bg-color: #07111f;
+  --bg-elevated: #0d1a2b;
+  --bg-panel: rgba(13, 26, 43, 0.86);
+  --accent-primary: #60a5fa;
+  --accent-secondary: #2dd4bf;
+  --accent-soft: #a78bfa;
+  --success: #34d399;
+  --danger: #fb7185;
+  --warning: #fbbf24;
+  --text-primary: #edf6ff;
+  --text-secondary: #a9bad0;
+  --text-muted: #71859d;
+  --card-bg: rgba(13, 26, 43, 0.82);
+  --card-border: rgba(186, 207, 231, 0.14);
+  --glass-bg: rgba(10, 20, 34, 0.82);
   --glass-blur: blur(16px);
   --max-page: 1160px;
 }
@@ -32,10 +32,12 @@ html {
 
 body {
   background:
-    linear-gradient(rgba(16, 32, 51, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(16, 32, 51, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 16% 8%, rgba(96, 165, 250, 0.16), transparent 28vw),
+    radial-gradient(circle at 86% 14%, rgba(45, 212, 191, 0.12), transparent 28vw),
+    linear-gradient(rgba(186, 207, 231, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(186, 207, 231, 0.035) 1px, transparent 1px),
     var(--bg-color);
-  background-size: 32px 32px, 32px 32px, auto;
+  background-size: auto, auto, 32px 32px, 32px 32px, auto;
   color: var(--text-primary);
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
@@ -86,7 +88,7 @@ main {
   justify-content: space-between;
   align-items: center;
   gap: 14px;
-  box-shadow: 0 16px 34px rgba(16, 32, 51, 0.1);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28);
 }
 
 .brand-mark {
@@ -105,8 +107,8 @@ main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #102033;
-  color: #a7f3d0;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: #06101d;
   font-size: 0.82rem;
   font-weight: 900;
 }
@@ -140,7 +142,7 @@ main {
 .nav-link:hover,
 .nav-link.active {
   color: var(--text-primary);
-  background: rgba(37, 99, 235, 0.08);
+  background: rgba(96, 165, 250, 0.12);
 }
 
 .header-actions,
@@ -188,9 +190,9 @@ main {
 .btn-primary,
 .btn-premium,
 .auth-submit-btn {
-  background: var(--text-primary);
-  color: white;
-  box-shadow: 0 12px 24px rgba(16, 32, 51, 0.14);
+  background: linear-gradient(135deg, var(--accent-primary), #3b82f6);
+  color: #06101d;
+  box-shadow: 0 12px 24px rgba(59, 130, 246, 0.22);
 }
 
 .btn-primary:hover,
@@ -214,15 +216,15 @@ main {
 
 .btn-ghost,
 .google-auth-btn {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(13, 26, 43, 0.62);
   border: 1px solid var(--card-border);
   color: var(--text-primary);
 }
 
 .btn-apple-pay {
   width: 100%;
-  background: #102033;
-  color: white;
+  background: #edf6ff;
+  color: #07111f;
 }
 
 .site-page {
@@ -313,17 +315,17 @@ main {
   gap: 10px;
   align-items: center;
   padding: 12px;
-  background: #102033;
-  color: white;
+  background: linear-gradient(135deg, #0b1626, #12243a);
+  color: var(--text-primary);
   border-radius: 8px;
-  box-shadow: 0 18px 34px rgba(16, 32, 51, 0.16);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
 }
 
 .console-search {
   min-height: 40px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   padding: 0 12px;
@@ -342,7 +344,7 @@ main {
   background: var(--bg-panel);
   border: 1px solid var(--card-border);
   border-radius: 8px;
-  box-shadow: 0 18px 34px rgba(16, 32, 51, 0.08);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.24);
 }
 
 .console-rail {
@@ -355,7 +357,7 @@ main {
 .rail-item {
   min-height: 38px;
   border-radius: 8px;
-  background: rgba(16, 32, 51, 0.05);
+  background: rgba(186, 207, 231, 0.055);
   display: flex;
   align-items: center;
   padding: 0 10px;
@@ -365,7 +367,7 @@ main {
 }
 
 .rail-item.active {
-  background: rgba(37, 99, 235, 0.12);
+  background: rgba(96, 165, 250, 0.14);
   color: var(--accent-primary);
 }
 
@@ -384,7 +386,7 @@ main {
 .metric-tile {
   min-height: 92px;
   border-radius: 8px;
-  background: rgba(16, 32, 51, 0.045);
+  background: rgba(186, 207, 231, 0.055);
   padding: 14px;
 }
 
@@ -424,7 +426,7 @@ main {
 .timeline-line {
   height: 8px;
   border-radius: 8px;
-  background: rgba(16, 32, 51, 0.08);
+  background: rgba(186, 207, 231, 0.09);
   overflow: hidden;
 }
 
@@ -451,7 +453,7 @@ main {
   border: 1px solid var(--card-border);
   border-radius: 8px;
   backdrop-filter: blur(14px);
-  box-shadow: 0 18px 34px rgba(16, 32, 51, 0.08);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.22);
 }
 
 .panel,
@@ -463,8 +465,8 @@ main {
 .glow-card:hover,
 .premium-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(37, 99, 235, 0.26);
-  box-shadow: 0 22px 42px rgba(16, 32, 51, 0.12);
+  border-color: rgba(96, 165, 250, 0.34);
+  box-shadow: 0 22px 42px rgba(0, 0, 0, 0.28);
 }
 
 .feature-grid {
@@ -498,8 +500,8 @@ main {
   gap: 12px;
   align-items: center;
   padding: 12px;
-  background: rgba(16, 32, 51, 0.04);
-  border: 1px solid rgba(16, 32, 51, 0.09);
+  background: rgba(186, 207, 231, 0.045);
+  border: 1px solid rgba(186, 207, 231, 0.1);
   border-radius: 8px;
 }
 
@@ -513,7 +515,7 @@ main {
   height: 8px;
   overflow: hidden;
   border-radius: 8px;
-  background: rgba(16, 32, 51, 0.08);
+  background: rgba(186, 207, 231, 0.09);
 }
 
 .progress-fill {
@@ -530,7 +532,7 @@ main {
 .search-input,
 .form-input {
   width: 100%;
-  background: white;
+  background: rgba(7, 17, 31, 0.72);
   border: 1px solid var(--card-border);
   border-radius: 8px;
   padding: 14px 16px;
@@ -542,8 +544,8 @@ main {
 
 .search-input:focus,
 .form-input:focus {
-  border-color: rgba(37, 99, 235, 0.42);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  border-color: rgba(96, 165, 250, 0.52);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.14);
 }
 
 .search-input::placeholder,
@@ -639,8 +641,8 @@ main {
 }
 
 .insights-tab {
-  background: rgba(16, 32, 51, 0.045);
-  border: 1px solid rgba(16, 32, 51, 0.09);
+  background: rgba(186, 207, 231, 0.045);
+  border: 1px solid rgba(186, 207, 231, 0.1);
   border-radius: 8px;
   color: var(--text-secondary);
   font-size: 0.9rem;
@@ -654,8 +656,8 @@ main {
 .insights-tab:hover,
 .insights-tab.active {
   color: var(--accent-primary);
-  background: rgba(37, 99, 235, 0.08);
-  border-color: rgba(37, 99, 235, 0.24);
+  background: rgba(96, 165, 250, 0.12);
+  border-color: rgba(96, 165, 250, 0.28);
 }
 
 .insights-content {
@@ -687,7 +689,7 @@ main {
   width: 340px;
   max-width: calc(100vw - 18px);
   height: 100vh;
-  background: rgba(255, 255, 255, 0.96);
+  background: rgba(10, 20, 34, 0.96);
   backdrop-filter: blur(18px);
   border-right: 1px solid var(--card-border);
   z-index: 1000;
@@ -695,7 +697,7 @@ main {
   display: flex;
   flex-direction: column;
   padding: 18px;
-  box-shadow: 14px 0 32px rgba(16, 32, 51, 0.14);
+  box-shadow: 14px 0 32px rgba(0, 0, 0, 0.34);
 }
 
 .sidebar-drawer.open {
@@ -710,14 +712,14 @@ main {
   width: 58px;
   height: 58px;
   border-radius: 8px;
-  background: var(--text-primary);
-  color: white;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: #06101d;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 14px 28px rgba(16, 32, 51, 0.2);
+  box-shadow: 0 14px 28px rgba(45, 212, 191, 0.18);
 }
 
 .sidebar-header {
@@ -749,7 +751,7 @@ main {
 .new-chat-btn {
   padding: 12px 14px;
   border-radius: 8px;
-  background: rgba(16, 32, 51, 0.045);
+  background: rgba(186, 207, 231, 0.045);
   border: 1px solid transparent;
   color: var(--text-secondary);
   cursor: pointer;
@@ -764,8 +766,8 @@ main {
 .chat-session-item:hover,
 .new-chat-btn:hover,
 .chat-session-item.active {
-  background: rgba(37, 99, 235, 0.08);
-  border-color: rgba(37, 99, 235, 0.2);
+  background: rgba(96, 165, 250, 0.12);
+  border-color: rgba(96, 165, 250, 0.26);
   color: var(--accent-primary);
 }
 
@@ -785,13 +787,13 @@ main {
 }
 
 .grid-bg {
-  background: linear-gradient(180deg, rgba(37, 99, 235, 0.08), transparent 380px);
+  background: linear-gradient(180deg, rgba(96, 165, 250, 0.1), transparent 380px);
 }
 
 .grid-lines {
   background-image:
-    linear-gradient(rgba(16, 32, 51, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(16, 32, 51, 0.035) 1px, transparent 1px);
+    linear-gradient(rgba(186, 207, 231, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(186, 207, 231, 0.035) 1px, transparent 1px);
   background-size: 32px 32px;
 }
 

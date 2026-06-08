@@ -94,11 +94,11 @@ function SuccessContent() {
         <div style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           width: '80px', height: '80px', borderRadius: '8px',
-          background: 'rgba(37, 99, 235, 0.08)', marginBottom: '28px'
+          background: 'rgba(96, 165, 250, 0.08)', marginBottom: '28px'
         }}>
           <div style={{
-            width: '36px', height: '36px', border: '3px solid rgba(37, 99, 235,0.2)',
-            borderLeftColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite'
+            width: '36px', height: '36px', border: '3px solid rgba(96, 165, 250,0.2)',
+            borderLeftColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite'
           }}></div>
         </div>
         <h2 style={{ fontSize: '1.8rem', color: 'var(--text-primary)', marginBottom: '12px' }}>
@@ -215,8 +215,8 @@ export default function PaymentSuccessPage() {
         <Suspense fallback={
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <div style={{
-              width: '36px', height: '36px', border: '3px solid rgba(37, 99, 235,0.2)',
-              borderLeftColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite',
+              width: '36px', height: '36px', border: '3px solid rgba(96, 165, 250,0.2)',
+              borderLeftColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite',
               margin: '0 auto'
             }}></div>
           </div>

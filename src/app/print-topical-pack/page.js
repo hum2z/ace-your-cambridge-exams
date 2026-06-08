@@ -47,7 +47,7 @@ function PrintTopicalPackContent() {
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-color)', color: 'var(--text-primary)', fontFamily: 'sans-serif' }}>
-        <div style={{ border: '4px solid rgba(255,255,255,0.1)', width: '48px', height: '48px', borderRadius: '50%', borderLeftColor: '#2563eb', animation: 'spin 1s linear infinite' }}></div>
+        <div style={{ border: '4px solid rgba(255,255,255,0.1)', width: '48px', height: '48px', borderRadius: '50%', borderLeftColor: '#60a5fa', animation: 'spin 1s linear infinite' }}></div>
         <h2 style={{ marginTop: '20px', fontWeight: '500' }}>Compiling 9-Page Exam Workbook...</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Analyzing past papers, cropping questions, and structuring markschemes for {subjectCode}</p>
         <style dangerouslySetInnerHTML={{__html: `
@@ -145,7 +145,7 @@ function PrintTopicalPackContent() {
       {/* Custom Stylesheet */}
       <style dangerouslySetInnerHTML={{__html: `
         :root {
-          --primary: #2563eb;
+          --primary: #60a5fa;
           --border: var(--text-secondary);
           --text: #222222;
         }
