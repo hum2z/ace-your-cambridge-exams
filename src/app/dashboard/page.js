@@ -393,12 +393,12 @@ export default function DashboardPage() {
 
         {/* Topical Snippet Extractor Card */}
         <section id="topical-extractor-card" className="site-section fade-in" style={{ marginTop: '40px' }}>
-          <div className="premium-card" style={{ padding: '30px', border: '1px solid rgba(255,209,102,0.3)', background: 'rgba(255,209,102,0.05)' }}>
+          <div className="premium-card" style={{ padding: '30px', border: '1px solid rgba(15,118,110,0.3)', background: 'rgba(15,118,110,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <BookCopy size={22} color="#ffd166" />
-              <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'white' }}>Topical Snippet Extractor</h3>
+              <BookCopy size={22} color="#0f766e" />
+              <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--text-primary)' }}>Topical Snippet Extractor</h3>
             </div>
-            <p style={{ color: '#a0a0a0', fontSize: '0.9rem', marginBottom: '24px' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px' }}>
               Scans authentic past papers, finds pages about your topic using AI, and compiles them into two precise PDFs — one Question Paper, one Mark Scheme.
             </p>
 
@@ -406,7 +406,7 @@ export default function DashboardPage() {
               {/* Input grid for inputs */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
                 <div>
-                  <p style={{ color: '#a0a0a0', fontSize: '0.85rem', marginBottom: '8px' }}>Subject Code:</p>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px' }}>Subject Code:</p>
                   <input
                     type="text"
                     className="search-input"
@@ -417,7 +417,7 @@ export default function DashboardPage() {
                   />
                 </div>
                 <div>
-                  <p style={{ color: '#a0a0a0', fontSize: '0.85rem', marginBottom: '8px' }}>Topic Name:</p>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px' }}>Topic Name:</p>
                   <input
                     type="text"
                     className="search-input"
@@ -428,7 +428,7 @@ export default function DashboardPage() {
                   />
                 </div>
                 <div>
-                  <p style={{ color: '#a0a0a0', fontSize: '0.85rem', marginBottom: '8px' }}>Paper Number (Optional):</p>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px' }}>Paper Number (Optional):</p>
                   <input
                     type="text"
                     className="search-input"
@@ -439,7 +439,7 @@ export default function DashboardPage() {
                   />
                 </div>
                 <div>
-                  <p style={{ color: '#a0a0a0', fontSize: '0.85rem', marginBottom: '8px' }}>Variant (Optional):</p>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px' }}>Variant (Optional):</p>
                   <input
                     type="text"
                     className="search-input"
@@ -453,7 +453,7 @@ export default function DashboardPage() {
 
               {/* Year selector */}
               <div>
-                <p style={{ color: '#a0a0a0', fontSize: '0.85rem', marginBottom: '10px' }}>Select years to scan:</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '10px' }}>Select years to scan:</p>
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   {[2023, 2022, 2021, 2020, 2019, 2018].map(y => (
                     <button
@@ -467,9 +467,9 @@ export default function DashboardPage() {
                       style={{
                         padding: '8px 16px',
                         borderRadius: '8px',
-                        border: selectedYears.includes(y) ? '1px solid #ffd166' : '1px solid #333',
-                        background: selectedYears.includes(y) ? 'rgba(255,209,102,0.15)' : 'transparent',
-                        color: selectedYears.includes(y) ? '#ffd166' : '#a0a0a0',
+                        border: selectedYears.includes(y) ? '1px solid #0f766e' : '1px solid rgba(16, 32, 51, 0.18)',
+                        background: selectedYears.includes(y) ? 'rgba(15,118,110,0.15)' : 'transparent',
+                        color: selectedYears.includes(y) ? '#0f766e' : 'var(--text-secondary)',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -487,7 +487,7 @@ export default function DashboardPage() {
 
               {/* Status text */}
               {extractStatus && (
-                <p style={{ fontSize: '0.85rem', color: '#ffd166', margin: 0 }}>{extractStatus}</p>
+                <p style={{ fontSize: '0.85rem', color: '#0f766e', margin: 0 }}>{extractStatus}</p>
               )}
 
               {/* Action buttons row */}
@@ -500,7 +500,7 @@ export default function DashboardPage() {
                   style={{
                     padding: '14px 28px',
                     borderRadius: '8px',
-                    background: extracting ? 'rgba(255,209,102,0.2)' : 'linear-gradient(135deg, #ff7a1a, #ffd166)',
+                    background: extracting ? 'rgba(15,118,110,0.2)' : 'linear-gradient(135deg, #0f766e, #0f766e)',
                     border: 'none',
                     color: 'white',
                     fontWeight: '700',
@@ -529,7 +529,7 @@ export default function DashboardPage() {
                   style={{
                     padding: '14px 28px',
                     borderRadius: '8px',
-                    background: generatingNotes ? 'rgba(0,230,118,0.15)' : 'linear-gradient(135deg, #00b86b, #00e676)',
+                    background: generatingNotes ? 'rgba(0,230,118,0.15)' : 'linear-gradient(135deg, #00b86b, #0f9f6e)',
                     border: 'none',
                     color: generatingNotes ? '#aaa' : '#000',
                     fontWeight: '700',
@@ -555,12 +555,12 @@ export default function DashboardPage() {
             {extractedFiles && (
               <div style={{ display: 'flex', gap: '15px', marginTop: '20px', flexWrap: 'wrap' }} className="fade-in">
                 {extractedFiles.qpUrl && (
-                  <button type="button" onClick={() => downloadFile(extractedFiles.qpUrl, extractedFiles.qpName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #ff461a, #bf260c)' }}>
+                  <button type="button" onClick={() => downloadFile(extractedFiles.qpUrl, extractedFiles.qpName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)' }}>
                     <Download size={16} style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline-block' }} /> Download Question Paper
                   </button>
                 )}
                 {extractedFiles.msUrl && (
-                  <button type="button" onClick={() => downloadFile(extractedFiles.msUrl, extractedFiles.msName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #7a1806, #5f1408)' }}>
+                  <button type="button" onClick={() => downloadFile(extractedFiles.msUrl, extractedFiles.msName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #0f766e, #115e59)' }}>
                     <Download size={16} style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline-block' }} /> Download Mark Scheme
                   </button>
                 )}
@@ -574,30 +574,30 @@ export default function DashboardPage() {
           <div style={{
             padding: '30px',
             borderRadius: '8px',
-            background: 'rgba(5, 5, 5, 0.6)',
+            background: 'var(--bg-panel)',
             border: '1px solid rgba(255, 255, 255, 0.05)',
             backdropFilter: 'blur(10px)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Layers size={22} color="#ff461a" />
-                <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'white' }}>📚 My Compiled Library</h3>
+                <Layers size={22} color="#2563eb" />
+                <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--text-primary)' }}>📚 My Compiled Library</h3>
               </div>
-              <span style={{ fontSize: '0.8rem', color: '#666' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 {savedTopicals.length} booklet{savedTopicals.length !== 1 ? 's' : ''} saved
               </span>
             </div>
 
             {loadingSaved ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '10px' }}>
-                <Loader className="spin" size={18} color="#ff461a" />
-                <span style={{ color: '#a0a0a0', fontSize: '0.9rem' }}>Loading saved topicals...</span>
+                <Loader className="spin" size={18} color="#2563eb" />
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Loading saved topicals...</span>
               </div>
             ) : savedTopicals.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 20px', border: '1px dashed rgba(255,255,255,0.06)', borderRadius: '8px' }}>
-                <BookCopy size={32} color="#444" style={{ marginBottom: '12px' }} />
-                <p style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>No compiled booklets in your library yet.</p>
-                <p style={{ margin: '4px 0 0 0', color: '#444', fontSize: '0.8rem' }}>Extract a topic using the tool above to save it here automatically.</p>
+                <BookCopy size={32} color="var(--text-muted)" style={{ marginBottom: '12px' }} />
+                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>No compiled booklets in your library yet.</p>
+                <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Extract a topic using the tool above to save it here automatically.</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -621,14 +621,14 @@ export default function DashboardPage() {
                   >
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ background: 'rgba(255, 70, 26, 0.15)', color: '#ff461a', fontSize: '0.75rem', fontWeight: '700', padding: '2px 8px', borderRadius: '4px' }}>
+                        <span style={{ background: 'rgba(37, 99, 235, 0.15)', color: '#2563eb', fontSize: '0.75rem', fontWeight: '700', padding: '2px 8px', borderRadius: '4px' }}>
                           {topical.subjectCode}
                         </span>
-                        <h4 style={{ margin: 0, color: 'white', fontSize: '1rem', fontWeight: '600' }}>
+                        <h4 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1rem', fontWeight: '600' }}>
                           {topical.topic}
                         </h4>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.8rem', color: '#666' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                         <span>Years: {Array.isArray(topical.years) ? topical.years.join(', ') : topical.years}</span>
                         <span>•</span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -642,9 +642,9 @@ export default function DashboardPage() {
                         <button
                           onClick={() => downloadFile(topical.qpUrl, `${topical.subjectCode}_${topical.topic.replace(/\s+/g, '_')}_Questions.pdf`)}
                           style={{
-                            background: 'rgba(255, 70, 26, 0.1)',
-                            border: '1px solid rgba(255, 70, 26, 0.2)',
-                            color: '#ff461a',
+                            background: 'rgba(37, 99, 235, 0.1)',
+                            border: '1px solid rgba(37, 99, 235, 0.2)',
+                            color: '#2563eb',
                             borderRadius: '8px',
                             padding: '8px 14px',
                             fontSize: '0.8rem',
@@ -655,8 +655,8 @@ export default function DashboardPage() {
                             gap: '6px',
                             transition: 'all 0.2s'
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 70, 26, 0.2)'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 70, 26, 0.1)'}
+                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(37, 99, 235, 0.2)'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(37, 99, 235, 0.1)'}
                         >
                           <Download size={12} /> QP
                         </button>
@@ -667,7 +667,7 @@ export default function DashboardPage() {
                           style={{
                             background: 'rgba(168, 85, 247, 0.1)',
                             border: '1px solid rgba(168, 85, 247, 0.2)',
-                            color: '#ffd166',
+                            color: '#0f766e',
                             borderRadius: '8px',
                             padding: '8px 14px',
                             fontSize: '0.8rem',
@@ -698,15 +698,15 @@ export default function DashboardPage() {
             <div className="premium-card" style={{ padding: '30px', border: '1px solid rgba(0,230,118,0.3)', background: 'rgba(0,230,118,0.03)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Sparkles color="#00e676" size={24} />
+                  <Sparkles color="#0f9f6e" size={24} />
                   <div>
-                    <h3 style={{ fontSize: '1.6rem', margin: 0, color: 'white' }}>Examiner Intelligence Report</h3>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#a0a0a0' }}>{examinerNotes.subjectCode} · {examinerNotes.topic} · {examinerNotes.yearsAnalyzed}</p>
+                    <h3 style={{ fontSize: '1.6rem', margin: 0, color: 'var(--text-primary)' }}>Examiner Intelligence Report</h3>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{examinerNotes.subjectCode} · {examinerNotes.topic} · {examinerNotes.yearsAnalyzed}</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setExaminerNotes(null)}
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid #333', color: '#a0a0a0', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem' }}
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(16, 32, 51, 0.18)', color: 'var(--text-secondary)', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem' }}
                 >
                   <X size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Close
                 </button>
@@ -780,8 +780,8 @@ export default function DashboardPage() {
 
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '60px' }} className="fade-in">
-            <div className="spinner" style={{ border: '4px solid rgba(255,255,255,0.1)', width: '36px', height: '36px', borderRadius: '50%', borderLeftColor: '#ff461a', animation: 'spin 1s linear infinite' }}></div>
-            <p style={{ marginTop: '15px', color: '#a0a0a0' }}>Compiling syllabus insights using Llama 3.3...</p>
+            <div className="spinner" style={{ border: '4px solid rgba(255,255,255,0.1)', width: '36px', height: '36px', borderRadius: '50%', borderLeftColor: '#2563eb', animation: 'spin 1s linear infinite' }}></div>
+            <p style={{ marginTop: '15px', color: 'var(--text-secondary)' }}>Compiling syllabus insights using Llama 3.3...</p>
           </div>
         )}
 
@@ -790,7 +790,7 @@ export default function DashboardPage() {
             <div className="premium-card" style={{ padding: '30px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Sparkles color="#ff461a" size={24} />
+                  <Sparkles color="#2563eb" size={24} />
                   <h3 style={{ fontSize: '2rem', margin: 0 }}>Syllabus Insights for {subjectCode}</h3>
                 </div>
                 <button
@@ -802,7 +802,7 @@ export default function DashboardPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    background: 'linear-gradient(135deg, #ff461a, #bf260c)',
+                    background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
                     fontWeight: '600',
                     fontSize: '0.9rem',
                     border: 'none'
@@ -860,8 +860,8 @@ export default function DashboardPage() {
         <div className={`sidebar-drawer ${tutorSidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Cpu color="#ff461a" size={20} />
-              <span style={{ fontWeight: '600', color: 'white' }}>AI Tutor Workspace</span>
+              <Cpu color="#2563eb" size={20} />
+              <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>AI Tutor Workspace</span>
             </div>
             <button className="sidebar-close-btn" onClick={() => setTutorSidebarOpen(false)}>
               <X size={20} />
@@ -882,7 +882,7 @@ export default function DashboardPage() {
               alignItems: 'center',
               cursor: 'pointer',
               padding: '5px 0 10px',
-              color: '#a0a0a0',
+              color: 'var(--text-secondary)',
               fontSize: '0.85rem',
               borderBottom: '1px solid rgba(255,255,255,0.05)',
               marginBottom: '10px'
@@ -915,7 +915,7 @@ export default function DashboardPage() {
 
           {/* Main active chat area inside sidebar */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', marginTop: '10px' }}>
-            <div style={{ fontSize: '0.75rem', color: '#a0a0a0', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
               Active: {activeSession.title}
             </div>
 
@@ -926,8 +926,8 @@ export default function DashboardPage() {
                     display: 'inline-block',
                     padding: '10px 14px',
                     borderRadius: '8px',
-                    background: msg.role === 'user' ? '#ff461a' : 'rgba(255,255,255,0.05)',
-                    color: msg.role === 'user' ? 'white' : '#e0e0e0',
+                    background: msg.role === 'user' ? '#2563eb' : 'rgba(255,255,255,0.05)',
+                    color: msg.role === 'user' ? 'white' : 'var(--text-secondary)',
                     fontSize: '0.85rem',
                     lineHeight: '1.4',
                     maxWidth: '85%',
@@ -949,7 +949,7 @@ export default function DashboardPage() {
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
               />
-              <button type="submit" style={{ position: 'absolute', right: '12px', top: '12px', background: 'transparent', border: 'none', color: '#ff461a', cursor: 'pointer' }}>
+              <button type="submit" style={{ position: 'absolute', right: '12px', top: '12px', background: 'transparent', border: 'none', color: '#2563eb', cursor: 'pointer' }}>
                 <Send size={18} />
               </button>
             </form>
@@ -972,7 +972,7 @@ export default function DashboardPage() {
             top: '30px',
             left: '50%',
             transform: 'translateX(-50%)',
-            background: toast.type === 'success' ? '#00e676' : toast.type === 'info' ? '#ff461a' : '#ff1744',
+            background: toast.type === 'success' ? '#0f9f6e' : toast.type === 'info' ? '#2563eb' : '#dc2626',
             color: 'white',
             padding: '12px 24px',
             borderRadius: '8px',

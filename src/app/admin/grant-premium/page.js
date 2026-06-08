@@ -67,7 +67,7 @@ export default function GrantPremiumPage() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: "#0a0a0a",
+      background: "var(--bg-color)",
       color: "#fff",
       fontFamily: "system-ui, sans-serif",
     }}>

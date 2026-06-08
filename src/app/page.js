@@ -1,36 +1,36 @@
 'use client'
 
 import Link from 'next/link'
-import { BookCopy, CheckCircle, ChevronRight, Cpu, FileText, Layers, Printer, Sparkles } from 'lucide-react'
+import { ArrowRight, BookOpenCheck, Bot, CheckCircle, ClipboardList, Download, Files, Search, Sparkles } from 'lucide-react'
 import { useAuth } from '@/components/AuthContext'
 
 const features = [
   {
-    icon: BookCopy,
-    title: 'Topical packs',
-    text: 'Find the exact questions for a topic, then split questions and mark schemes into clean booklets.',
+    icon: Search,
+    title: 'Precise topical search',
+    text: 'Filter by syllabus, topic, year, paper, and variant without digging through archive folders.',
   },
   {
-    icon: FileText,
-    title: 'Examiner notes',
-    text: 'Turn years of marking patterns into scoring phrases, repeated traps, and quick revision notes.',
+    icon: ClipboardList,
+    title: 'Examiner intelligence',
+    text: 'Review repeated question styles, scoring words, and mistakes before you start the set.',
   },
   {
-    icon: Cpu,
-    title: 'AI tutor',
-    text: 'Ask syllabus questions while you work, with chat sessions kept separate for each study sprint.',
+    icon: Bot,
+    title: 'Tutor on standby',
+    text: 'Ask follow-up questions while you build packs and keep sessions organized by topic.',
   },
   {
-    icon: Printer,
-    title: 'Print packs',
-    text: 'Compile official paper archives into practical PDFs you can print, annotate, and master.',
+    icon: Download,
+    title: 'Clean exports',
+    text: 'Download question papers and mark schemes as separate, practical revision PDFs.',
   },
 ]
 
-const workflow = [
-  ['9702 Physics', 'Wave optics', '86% matched'],
-  ['9701 Chemistry', 'Energetics', 'Ready to export'],
-  ['9709 Maths', 'Vectors', 'Mark scheme found'],
+const tasks = [
+  ['9702', 'Circular motion', '74%'],
+  ['9701', 'Equilibria', '58%'],
+  ['9709', 'Integration', '92%'],
 ]
 
 export default function HomePage() {
@@ -38,85 +38,118 @@ export default function HomePage() {
 
   return (
     <div className="site-page">
-      <section className="hero-stage" aria-label="Past Paper study companion">
+      <section className="workspace-hero" aria-label="PastPaper workspace">
         <div className="hero-copy fade-in">
           <div className="eyebrow">
-            <span className="avatar-stack" aria-hidden="true">
-              <span className="avatar-dot"></span>
-              <span className="avatar-dot"></span>
-              <span className="avatar-dot"></span>
-            </span>
-            50k+ students trust us
+            <span className="status-dot" aria-hidden="true"></span>
+            Paper archive online
           </div>
 
           <div>
-            <p className="section-kicker">Cambridge study engine</p>
-            <h1 className="section-heading">Ace your exams with less paper-chasing.</h1>
+            <p className="section-kicker">Cambridge revision workspace</p>
+            <h1 className="section-heading">Turn past papers into a study plan.</h1>
             <p className="section-copy">
-              Generate topical past paper packs, examiner insights, and focused AI tutor sessions from one sharp workspace.
+              Build topical packs, generate examiner notes, and keep an AI tutor beside the questions you are actually solving.
             </p>
           </div>
 
           {!loading && (
             <div className="hero-actions">
               <Link href={user ? '/dashboard' : '/login'} className="btn-primary">
-                {user ? 'Open Dashboard' : 'Get Started'} <ChevronRight size={18} />
+                {user ? 'Open Workspace' : 'Start Workspace'} <ArrowRight size={18} />
               </Link>
               <Link href="/subscription" className="btn-ghost">
-                See Pricing
+                View Pass
               </Link>
             </div>
           )}
         </div>
 
-        <div className="hero-panel fade-in">
-          <p>
-            Live pack builder: subject code, topic, paper number, years, notes, and downloads stay in one workflow.
-          </p>
-          <div className="progress-track" style={{ marginTop: 14 }}>
-            <div className="progress-fill" style={{ width: '76%' }}></div>
+        <div className="console-visual fade-in" aria-label="Study workspace preview">
+          <div className="console-topbar">
+            <div className="console-search">
+              Search subject, topic, paper, or mark scheme
+            </div>
+            <Sparkles size={20} />
+          </div>
+
+          <div className="console-body">
+            <aside className="console-rail" aria-label="Workspace sections">
+              <div className="rail-item active">Extract</div>
+              <div className="rail-item">Notes</div>
+              <div className="rail-item">Tutor</div>
+              <div className="rail-item">Library</div>
+            </aside>
+
+            <div className="console-main">
+              <div className="metric-grid">
+                <div className="metric-tile">
+                  <strong>38</strong>
+                  <span>pages matched</span>
+                </div>
+                <div className="metric-tile">
+                  <strong>12</strong>
+                  <span>papers scanned</span>
+                </div>
+                <div className="metric-tile">
+                  <strong>2</strong>
+                  <span>PDFs ready</span>
+                </div>
+              </div>
+
+              <div className="console-card">
+                <span>Active extraction queue</span>
+                <div className="timeline">
+                  {tasks.map(([code, topic, width]) => (
+                    <div className="timeline-row" key={topic}>
+                      <strong>{code}</strong>
+                      <div>
+                        <div style={{ color: 'var(--text-primary)', fontWeight: 850 }}>{topic}</div>
+                        <div className="timeline-line" style={{ marginTop: 8 }}>
+                          <div className="timeline-fill" style={{ width }}></div>
+                        </div>
+                      </div>
+                      <span>{width}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div className="hero-title" aria-hidden="true">
-          <span>ACE</span>
-          <span>EXAMS</span>
-        </div>
-        <img src="/vertical_book_transparent.png" alt="Past paper study book" className="hero-image float-anim" />
       </section>
 
       <section className="site-section split-section">
         <div>
-          <p className="section-kicker">From topic to booklet</p>
-          <h2 className="section-heading">A calmer way to work through past papers.</h2>
+          <p className="section-kicker">Workflow</p>
+          <h2 className="section-heading">One flow from topic search to printable practice.</h2>
           <p className="section-copy">
-            The interface is built for the real study loop: choose a syllabus, narrow the topic, scan the years, download the pack, then ask the tutor what still feels messy.
+            The interface is arranged around the real exam-prep loop: search, extract, read examiner guidance, ask the tutor, then export the set.
           </p>
         </div>
 
         <div className="panel tool-surface">
-          {workflow.map(([subject, topic, status], index) => (
-            <div className="tool-row" key={subject}>
-              <div>
-                <strong>{subject}</strong>
-                <div className="tool-meta">{topic}</div>
-              </div>
-              <span className="section-kicker" style={{ margin: 0 }}>
-                {status}
-              </span>
-              {index === 0 && (
-                <div className="progress-track" style={{ gridColumn: '1 / -1' }}>
-                  <div className="progress-fill" style={{ width: '86%' }}></div>
+          {[
+            ['Choose syllabus', 'Enter a subject code and topic in the dashboard.'],
+            ['Scan official papers', 'The system checks selected years, papers, and variants.'],
+            ['Export and review', 'Download the pack and keep the session in your library.'],
+          ].map(([title, text], index) => (
+            <div className="tool-row" key={title}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <CheckCircle size={20} color="var(--success)" style={{ marginTop: 2 }} />
+                <div>
+                  <strong>{index + 1}. {title}</strong>
+                  <div className="tool-meta">{text}</div>
                 </div>
-              )}
+              </div>
             </div>
           ))}
         </div>
       </section>
 
       <section className="site-section" style={{ paddingTop: 84 }}>
-        <p className="section-kicker">What is inside</p>
-        <h2 className="section-heading">Built around the jobs students actually repeat.</h2>
+        <p className="section-kicker">Tools</p>
+        <h2 className="section-heading">Everything is organized like a working desk.</h2>
         <div className="feature-grid">
           {features.map(({ icon: Icon, title, text }) => (
             <article className="panel feature-card" key={title}>
@@ -130,15 +163,16 @@ export default function HomePage() {
 
       <section className="site-section split-section">
         <div className="panel">
-          <Layers size={28} color="var(--accent-soft)" />
-          <h2 style={{ marginTop: 18, fontSize: 'clamp(1.8rem, 4vw, 3rem)' }}>Your library keeps the useful work.</h2>
+          <Files size={28} color="var(--accent-primary)" />
+          <h2 style={{ marginTop: 18, fontSize: 'clamp(1.8rem, 4vw, 3rem)' }}>Save each useful set as a reusable pack.</h2>
           <p className="section-copy" style={{ marginTop: 14 }}>
-            Generated packs can be saved and opened again, so every extraction becomes part of a reusable revision shelf.
+            Your library keeps completed topic packs available so a good extraction does not disappear after one session.
           </p>
         </div>
 
         <div className="panel">
-          <p className="section-kicker">Premium pass</p>
+          <BookOpenCheck size={28} color="var(--accent-secondary)" />
+          <p className="section-kicker" style={{ marginTop: 18 }}>Premium pass</p>
           <h2 style={{ fontSize: 'clamp(2.4rem, 7vw, 5.2rem)', lineHeight: 0.9 }}>$5</h2>
           <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>USD for 30 days of full access.</p>
           <ul className="feature-list">
@@ -147,7 +181,7 @@ export default function HomePage() {
             <li className="feature-item"><CheckCircle size={18} color="var(--success)" /> AI tutor workspace</li>
           </ul>
           <Link href={user ? '/dashboard' : '/subscription'} className="btn-primary">
-            {user ? 'Go to Dashboard' : 'Upgrade Now'} <ChevronRight size={18} />
+            {user ? 'Go to Workspace' : 'Unlock Pass'} <ArrowRight size={18} />
           </Link>
         </div>
       </section>

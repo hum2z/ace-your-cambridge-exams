@@ -94,17 +94,17 @@ function SuccessContent() {
         <div style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           width: '80px', height: '80px', borderRadius: '8px',
-          background: 'rgba(255, 70, 26, 0.08)', marginBottom: '28px'
+          background: 'rgba(37, 99, 235, 0.08)', marginBottom: '28px'
         }}>
           <div style={{
-            width: '36px', height: '36px', border: '3px solid rgba(255, 70, 26,0.2)',
-            borderLeftColor: '#ff461a', borderRadius: '50%', animation: 'spin 1s linear infinite'
+            width: '36px', height: '36px', border: '3px solid rgba(37, 99, 235,0.2)',
+            borderLeftColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite'
           }}></div>
         </div>
-        <h2 style={{ fontSize: '1.8rem', color: 'white', marginBottom: '12px' }}>
+        <h2 style={{ fontSize: '1.8rem', color: 'var(--text-primary)', marginBottom: '12px' }}>
           Verifying your payment...
         </h2>
-        <p style={{ color: '#a0a0a0', fontSize: '0.95rem' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
           Please wait while we confirm your transaction with Ziina.
         </p>
       </div>
@@ -119,12 +119,12 @@ function SuccessContent() {
           width: '80px', height: '80px', borderRadius: '50%',
           background: 'rgba(255, 23, 68, 0.08)', marginBottom: '28px'
         }}>
-          <XCircle size={42} color="#ff1744" />
+          <XCircle size={42} color="#dc2626" />
         </div>
-        <h2 style={{ fontSize: '1.8rem', color: 'white', marginBottom: '12px' }}>
+        <h2 style={{ fontSize: '1.8rem', color: 'var(--text-primary)', marginBottom: '12px' }}>
           Payment Not Confirmed
         </h2>
-        <p style={{ color: '#a0a0a0', fontSize: '0.95rem', lineHeight: '1.6', maxWidth: '400px', margin: '0 auto 30px' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.6', maxWidth: '400px', margin: '0 auto 30px' }}>
           We couldn't confirm your payment. This may be temporary — if you were charged, your subscription will activate automatically within a few minutes.
         </p>
         <button
@@ -154,28 +154,28 @@ function SuccessContent() {
         marginBottom: '28px',
         animation: 'pulse 2s ease-in-out infinite'
       }}>
-        <CheckCircle size={48} color="#00e676" />
+        <CheckCircle size={48} color="#0f9f6e" />
       </div>
 
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: '6px',
         background: 'rgba(0, 230, 118, 0.1)', border: '1px solid rgba(0, 230, 118, 0.2)',
-        borderRadius: '8px', padding: '8px 12px', color: '#00e676',
+        borderRadius: '8px', padding: '8px 12px', color: '#0f9f6e',
         fontSize: '0.8rem', fontWeight: '800', marginBottom: '20px'
       }}>
         <Sparkles size={12} /> PREMIUM ACTIVATED
       </div>
 
-      <h2 style={{ fontSize: '2.2rem', color: 'white', marginBottom: '12px', letterSpacing: '0' }}>
+      <h2 style={{ fontSize: '2.2rem', color: 'var(--text-primary)', marginBottom: '12px', letterSpacing: '0' }}>
         Welcome to Pro!
       </h2>
-      <p style={{ color: '#a0a0a0', fontSize: '0.95rem', lineHeight: '1.7', maxWidth: '440px', margin: '0 auto 16px' }}>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.7', maxWidth: '440px', margin: '0 auto 16px' }}>
         Your Pro Study Pass is now active. You have full unlimited access to all Past Paper tools, AI Tutor sessions, and examiner reports.
       </p>
 
       {expDate && (
-        <p style={{ color: '#666', fontSize: '0.8rem', marginBottom: '30px' }}>
-          Your access is valid until <strong style={{ color: '#a0a0a0' }}>{expDate}</strong>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '30px' }}>
+          Your access is valid until <strong style={{ color: 'var(--text-secondary)' }}>{expDate}</strong>
         </p>
       )}
 
@@ -186,8 +186,8 @@ function SuccessContent() {
         textAlign: 'left'
       }}>
         {['Unlimited Topical Extractions', 'Unlimited AI Tutor Sessions', 'Examiner Intelligence Reports', 'Priority Server Speed'].map((feature, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0', color: '#e0e0e0', fontSize: '0.9rem' }}>
-            <CheckCircle size={16} color="#00e676" />
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            <CheckCircle size={16} color="#0f9f6e" />
             {feature}
           </div>
         ))}
@@ -215,8 +215,8 @@ export default function PaymentSuccessPage() {
         <Suspense fallback={
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <div style={{
-              width: '36px', height: '36px', border: '3px solid rgba(255, 70, 26,0.2)',
-              borderLeftColor: '#ff461a', borderRadius: '50%', animation: 'spin 1s linear infinite',
+              width: '36px', height: '36px', border: '3px solid rgba(37, 99, 235,0.2)',
+              borderLeftColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite',
               margin: '0 auto'
             }}></div>
           </div>

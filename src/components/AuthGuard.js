@@ -31,8 +31,8 @@ export default function AuthGuard({ children }) {
             width: '40px',
             height: '40px',
             borderRadius: '50%',
-            border: '3px solid rgba(255, 70, 26, 0.1)',
-            borderLeftColor: '#ff461a',
+            border: '3px solid rgba(37, 99, 235, 0.1)',
+            borderLeftColor: '#2563eb',
             animation: 'spin 1s linear infinite'
           }}></div>
           <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: '800' }}>

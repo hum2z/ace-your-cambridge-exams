@@ -163,7 +163,7 @@ export default function SubscriptionPage() {
 
       {isCancelled && (
         <section className="site-section" style={{ paddingTop: 28 }}>
-          <div className="panel" style={{ borderColor: 'rgba(255, 209, 102, 0.42)' }}>
+          <div className="panel" style={{ borderColor: 'rgba(15, 118, 110, 0.42)' }}>
             <AlertCircle size={18} color="var(--accent-soft)" />
             <p style={{ marginTop: 10, color: 'var(--text-secondary)' }}>Payment was cancelled. You can try again whenever you are ready.</p>
           </div>

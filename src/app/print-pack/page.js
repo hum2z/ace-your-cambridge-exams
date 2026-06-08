@@ -54,10 +54,10 @@ function PrintPackContent() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0a0a', color: 'white', fontFamily: 'sans-serif' }}>
-        <div style={{ border: '4px solid rgba(255,255,255,0.1)', width: '48px', height: '48px', borderRadius: '50%', borderLeftColor: '#ff461a', animation: 'spin 1s linear infinite' }}></div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-color)', color: 'var(--text-primary)', fontFamily: 'sans-serif' }}>
+        <div style={{ border: '4px solid rgba(255,255,255,0.1)', width: '48px', height: '48px', borderRadius: '50%', borderLeftColor: '#2563eb', animation: 'spin 1s linear infinite' }}></div>
         <h2 style={{ marginTop: '20px', fontWeight: '500' }}>Compiling PDF Exam Pack...</h2>
-        <p style={{ color: '#a0a0a0', fontSize: '0.9rem' }}>Gathering syllabus parameters, questions, and mark schemes for {subjectCode}</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Gathering syllabus parameters, questions, and mark schemes for {subjectCode}</p>
         <style dangerouslySetInnerHTML={{__html: `
           @keyframes spin {
             to { transform: rotate(360deg); }
@@ -158,8 +158,8 @@ function PrintPackContent() {
       {/* Custom Stylesheet */}
       <style dangerouslySetInnerHTML={{__html: `
         :root {
-          --primary: #ff461a;
-          --border: #e0e0e0;
+          --primary: #2563eb;
+          --border: var(--text-secondary);
           --text: #222222;
         }
 
@@ -205,13 +205,13 @@ function PrintPackContent() {
 
         .btn-back {
           background: #222;
-          color: #a0a0a0;
-          border: 1px solid #333;
+          color: var(--text-secondary);
+          border: 1px solid rgba(16, 32, 51, 0.18);
         }
 
         .btn-back:hover {
           color: white;
-          background: #333;
+          background: rgba(16, 32, 51, 0.18);
         }
 
         .btn-print {
@@ -220,7 +220,7 @@ function PrintPackContent() {
         }
 
         .btn-print:hover {
-          background: #bf260c;
+          background: #1d4ed8;
         }
 
         /* Printable Page Layout */
@@ -243,7 +243,7 @@ function PrintPackContent() {
           display: flex;
           justify-content: space-between;
           font-size: 0.75rem;
-          color: #666;
+          color: var(--text-muted);
           border-bottom: 1px solid var(--border);
           padding-bottom: 10px;
           margin-bottom: 30px;
@@ -268,7 +268,7 @@ function PrintPackContent() {
           display: flex;
           justify-content: center;
           font-size: 0.75rem;
-          color: #666;
+          color: var(--text-muted);
           border-top: 1px solid var(--border);
           padding-top: 15px;
         }
@@ -276,7 +276,7 @@ function PrintPackContent() {
         .markdown-body {
           line-height: 1.7;
           font-size: 0.95rem;
-          color: #333;
+          color: rgba(16, 32, 51, 0.18);
           white-space: pre-wrap;
         }
 
@@ -332,7 +332,7 @@ function PrintPackContent() {
 
         .cover-subtitle {
           font-size: 1.5rem;
-          color: #444;
+          color: var(--text-muted);
           font-weight: 500;
         }
 
@@ -352,7 +352,7 @@ function PrintPackContent() {
 
         .meta-box span {
           font-size: 0.7rem;
-          color: #666;
+          color: var(--text-muted);
           font-weight: 600;
           letter-spacing: 0.5px;
         }
@@ -365,7 +365,7 @@ function PrintPackContent() {
         .cover-footer {
           text-align: center;
           font-size: 0.75rem;
-          color: #666;
+          color: var(--text-muted);
         }
 
         .confidential-tag {
@@ -406,7 +406,7 @@ function PrintPackContent() {
 export default function PrintPack() {
   return (
     <Suspense fallback={
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0a0a', color: 'white' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-color)', color: 'var(--text-primary)' }}>
         <h2>Loading Compiler Parameters...</h2>
       </div>
     }>
