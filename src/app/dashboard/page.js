@@ -353,46 +353,8 @@ export default function DashboardPage() {
           </p>
         </section>
 
-        <section className="site-section" style={{ marginTop: '28px' }}>
-          <div className="panel" style={{ display: 'grid', gap: '18px' }}>
-            <form onSubmit={handleSearch} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '12px', alignItems: 'end' }}>
-              <label>
-                <span className="section-kicker" style={{ marginBottom: 8, display: 'block' }}>Subject code</span>
-                <input
-                  type="text"
-                  className="search-input"
-                  placeholder="9702, 9701, 9709..."
-                  value={subjectCode}
-                  onChange={(e) => setSubjectCode(e.target.value)}
-                />
-              </label>
-              <button type="submit" className="btn-primary" disabled={loading || !subjectCode.trim()} style={{ minWidth: 190, width: '100%' }}>
-                {loading ? 'Generating...' : <><Sparkles size={18} /> Generate Insights</>}
-              </button>
-            </form>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '12px', alignItems: 'end' }}>
-              <label>
-                <span className="section-kicker" style={{ marginBottom: 8, display: 'block' }}>Paper year</span>
-                <select
-                  className="search-input"
-                  value={compilationYear}
-                  onChange={(e) => setCompilationYear(Number(e.target.value))}
-                >
-                  {[2023, 2022, 2021, 2020, 2019, 2018].map((year) => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </select>
-              </label>
-              <button type="button" onClick={handleCompilePdfs} className="btn-ghost" disabled={compilingPdfs || !subjectCode.trim()} style={{ width: '100%' }}>
-                {compilingPdfs ? 'Compiling...' : <><Printer size={18} /> Compile Question Papers and Mark Schemes</>}
-              </button>
-            </div>
-          </div>
-        </section>
-
         {/* Topical Snippet Extractor Card */}
-        <section id="topical-extractor-card" className="site-section fade-in" style={{ marginTop: '40px' }}>
+        <section id="topical-extractor-card" className="site-section fade-in" style={{ marginTop: '28px' }}>
           <div className="premium-card" style={{ padding: '30px', border: '1px solid rgba(15,118,110,0.3)', background: 'rgba(15,118,110,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
               <BookCopy size={22} color="#0f766e" />
@@ -955,15 +917,6 @@ export default function DashboardPage() {
             </form>
           </div>
         </div>
-
-        <button
-          type="button"
-          className="sidebar-toggle-btn"
-          onClick={() => setTutorSidebarOpen(true)}
-          aria-label="Open AI tutor"
-        >
-          <Cpu size={24} />
-        </button>
 
         {/* Toast Notifications */}
         {toast.show && (
