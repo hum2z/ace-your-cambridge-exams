@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request) {
   try {
     const { subjectCode, year } = await request.json();
-    const cleanCode = subjectCode.replace(/[^A-Za-z0-9]/g, '').trim();
+    const cleanCode = subjectCode.replace(/[^A-Za-z0-9/]/g, '').trim();
 
     if (!cleanCode) {
       return NextResponse.json({ error: 'Enter a valid subject code' }, { status: 400 });

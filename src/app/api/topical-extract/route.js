@@ -476,7 +476,7 @@ export async function POST(request) {
 
     const apiKey = process.env.GROQ_API_KEY;
     const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
-    const cleanCode = subjectCode.replace(/[^A-Za-z0-9]/g, '').trim();
+    const cleanCode = subjectCode.replace(/[^A-Za-z0-9/]/g, '').trim();
     const cleanTopic = topic.trim();
 
     let targetPaperNumbers = [1, 2, 3, 4, 5, 6];
