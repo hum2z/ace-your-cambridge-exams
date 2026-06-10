@@ -1,5 +1,5 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
-import { getFirestore, collection, addDoc, doc, getDoc, setDoc, query, where, getDocs } from "firebase/firestore";
+import { getFirestore, collection, addDoc, doc, getDoc, setDoc, deleteDoc, query, where, getDocs } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
@@ -134,6 +134,17 @@ export const saveTopicalToFirebase = async (userId, topical) => {
   } catch (error) {
     console.error("Error saving topical to Firestore:", error);
     return null;
+  }
+};
+
+export const deleteTopicalFromFirebase = async (topicalId) => {
+  if (!db || !topicalId) return false;
+  try {
+    await deleteDoc(doc(db, "papers", topicalId));
+    return true;
+  } catch (error) {
+    console.error("Error deleting topical from Firestore:", error);
+    return false;
   }
 };
 

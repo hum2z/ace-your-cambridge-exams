@@ -8,17 +8,24 @@ const AuthContext = createContext({
   user: null,
   loading: true,
   isPremium: false,
+  isTrial: false,
   subscription: null,
   loginWithGoogle: async () => {},
   logout: async () => {},
-  refreshSubscription: async () => {}
+  refreshSubscription: async () => {},
+  consumeTrialUse: async () => false,
 })
+
+const TRIAL_LIMITS = { topicalUsesRemaining: 1, notesUsesRemaining: 1 }
+const isTrialSub = (sub) => !!sub && sub.status === 'trial'
+const trialHasUse = (sub, kind) => isTrialSub(sub) && (sub[`${kind}UsesRemaining`] ?? 0) > 0
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isPremium, setIsPremium] = useState(false)
   const [subscription, setSubscription] = useState(null)
+  const isTrial = isTrialSub(subscription)
 
   const refreshSubscription = useCallback(async (userId) => {
     if (!userId) {
@@ -135,36 +142,27 @@ export function AuthProvider({ children }) {
       const result = await createUserWithEmailAndPassword(auth, email, password)
       const newUser = result.user
 
-      // Grant a 30-day trial subscription automatically
+      // Grant a limited trial: 1 topical extraction + 1 notes generation.
+      // status is 'trial' (NOT 'active') so isSubscriptionActive/isPremium stay false.
       const now = new Date()
-      const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
       const trialSub = {
-        status: 'active',
+        status: 'trial',
         plan: 'trial',
         startDate: now.toISOString(),
-        expiresAt: expiresAt.toISOString(),
         createdAt: now.toISOString(),
-        grantedAutomatically: true
+        grantedAutomatically: true,
+        ...TRIAL_LIMITS,
       }
 
       try {
         await saveSubscription(newUser.uid, trialSub)
-        console.log('30-day trial subscription created for new user:', newUser.uid)
+        console.log('Trial subscription created for new user:', newUser.uid)
       } catch (subError) {
         console.error('Failed to create trial subscription:', subError)
       }
 
-      // Also cache locally for instant premium access
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem(`pastpaper_subscription_${newUser.uid}`, JSON.stringify(trialSub))
-        } catch (cacheErr) {
-          console.warn('Failed to cache trial subscription locally:', cacheErr)
-        }
-      }
-
       setSubscription(trialSub)
-      setIsPremium(true)
+      setIsPremium(false)
 
       return newUser
     } catch (error) {
@@ -174,6 +172,21 @@ export function AuthProvider({ children }) {
       setLoading(false)
     }
   }
+
+  const consumeTrialUse = useCallback(async (kind) => {
+    // kind: 'topical' | 'notes'
+    if (!user || !subscription) return false
+    if (!trialHasUse(subscription, kind)) return false
+    const field = `${kind}UsesRemaining`
+    const next = { ...subscription, [field]: Math.max(0, (subscription[field] ?? 0) - 1) }
+    setSubscription(next)
+    try {
+      await saveSubscription(user.uid, { [field]: next[field] })
+    } catch (err) {
+      console.error('Failed to persist trial decrement:', err)
+    }
+    return true
+  }, [user, subscription])
 
   const logout = async () => {
     try {
@@ -191,7 +204,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, isPremium, subscription, setIsPremium, setSubscription, loginWithGoogle, loginWithEmail, signUpWithEmail, logout, refreshSubscription }}>
+    <AuthContext.Provider value={{ user, loading, isPremium, isTrial, subscription, setIsPremium, setSubscription, loginWithGoogle, loginWithEmail, signUpWithEmail, logout, refreshSubscription, consumeTrialUse }}>
       {children}
     </AuthContext.Provider>
   )

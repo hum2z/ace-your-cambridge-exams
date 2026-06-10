@@ -5,10 +5,11 @@ import { Search, Cpu, Send, ChevronDown, ChevronUp, MessageSquare, Plus, X, Spar
 import { askTutor } from '@/lib/gemini'
 import PremiumGate from '@/components/PremiumGate'
 import { useAuth } from '@/components/AuthContext'
-import { saveTopicalToFirebase, getSavedTopicals } from '@/lib/firebase'
+import { saveTopicalToFirebase, getSavedTopicals, deleteTopicalFromFirebase } from '@/lib/firebase'
+import { Trash2 } from 'lucide-react'
 
 export default function DashboardPage() {
-  const { user } = useAuth()
+  const { user, isPremium, isTrial, subscription, consumeTrialUse } = useAuth()
   const [subjectCode, setSubjectCode] = useState('')
   const [insights, setInsights] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -167,11 +168,21 @@ export default function DashboardPage() {
   const [generatingNotes, setGeneratingNotes] = useState(false)
   const [activeNotesTab, setActiveNotesTab] = useState('repeated')
 
+  const canUse = (kind) => {
+    if (isPremium) return true
+    if (isTrial && (subscription?.[`${kind}UsesRemaining`] ?? 0) > 0) return true
+    return false
+  }
+
   const handleGenerateNotes = async () => {
     const cleanCode = subjectCode.trim()
     const cleanTopic = topicInput.trim()
     if (!cleanCode || !cleanTopic) {
       showToast('Please enter a subject code and topic name.', 'error')
+      return
+    }
+    if (!canUse('notes')) {
+      showToast('Trial limit reached. Upgrade to Premium for unlimited notes.', 'error')
       return
     }
     setGeneratingNotes(true)
@@ -189,6 +200,7 @@ export default function DashboardPage() {
       }
       const data = await response.json()
       setExaminerNotes(data)
+      if (!isPremium && isTrial) await consumeTrialUse('notes')
       showToast('Examiner Intelligence Report generated!', 'success')
     } catch (error) {
       console.error('Generate notes error:', error)
@@ -275,10 +287,29 @@ export default function DashboardPage() {
     }
   };
 
+  const handleDeleteTopical = async (topical) => {
+    if (!topical?.id) return;
+    if (!confirm(`Delete saved topical "${topical.topic}" (${topical.subjectCode})?`)) return;
+    const prev = savedTopicals;
+    setSavedTopicals(prev.filter(t => t.id !== topical.id));
+    const ok = await deleteTopicalFromFirebase(topical.id);
+    if (!ok) {
+      setSavedTopicals(prev);
+      showToast('Failed to delete topical. Please retry.', 'error');
+    } else {
+      showToast('Topical deleted.', 'success');
+    }
+  };
+
   const handleTopicalExtract = async () => {
     const cleanCode = subjectCode.trim();
     const cleanTopic = topicInput.trim();
     if (!cleanCode || !cleanTopic || selectedYears.length === 0) return;
+
+    if (!canUse('topical')) {
+      showToast('Trial limit reached. Upgrade to Premium for unlimited extractions.', 'error');
+      return;
+    }
 
     setExtracting(true);
     setExtractedFiles(null);
@@ -306,6 +337,7 @@ export default function DashboardPage() {
       setExtractedFiles(fileResult);
 
       setExtractStatus(`✅ Found ${data.qpPagesFound} question page(s) and ${data.msPagesFound} mark scheme page(s) for "${cleanTopic}"!`);
+      if (!isPremium && isTrial) await consumeTrialUse('topical');
       showToast(`Topic extraction complete! Saved to your library.`, 'success');
 
       // Auto-save topical extraction to Firestore
@@ -646,6 +678,28 @@ export default function DashboardPage() {
                           <Download size={12} /> MS
                         </button>
                       )}
+                      <button
+                        onClick={() => handleDeleteTopical(topical)}
+                        title="Delete saved topical"
+                        style={{
+                          background: 'rgba(220, 38, 38, 0.1)',
+                          border: '1px solid rgba(220, 38, 38, 0.2)',
+                          color: '#dc2626',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          fontSize: '0.8rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(220, 38, 38, 0.2)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(220, 38, 38, 0.1)'}
+                      >
+                        <Trash2 size={12} />
+                      </button>
                     </div>
                   </div>
                 ))}

@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { Crown, Lock, ArrowRight, Sparkles } from 'lucide-react'
 
 export default function PremiumGate({ children }) {
-  const { user, loading, isPremium } = useAuth()
+  const { user, loading, isPremium, isTrial, subscription } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -28,6 +28,21 @@ export default function PremiumGate({ children }) {
   }
 
   if (!user) return null
+
+  if (isTrial) {
+    const topicalLeft = subscription?.topicalUsesRemaining ?? 0
+    const notesLeft = subscription?.notesUsesRemaining ?? 0
+    return (
+      <>
+        <div style={{ background: 'rgba(15,118,110,0.12)', borderBottom: '1px solid rgba(15,118,110,0.25)', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', flexWrap: 'wrap', fontSize: '0.85rem', color: '#0f766e', fontWeight: 600 }}>
+          <Sparkles size={14} />
+          <span>Free trial · {topicalLeft} topical extraction · {notesLeft} notes generation left</span>
+          <Link href="/subscription" style={{ color: 'var(--accent-primary)', textDecoration: 'underline' }}>Upgrade</Link>
+        </div>
+        {children}
+      </>
+    )
+  }
 
   if (!isPremium) {
     return (
