@@ -51,11 +51,11 @@ export default function PremiumGate({ children }) {
         <div className="grid-lines"></div>
         
         <div className="panel" style={{ width: '100%', maxWidth: '500px', textAlign: 'center' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '70px', height: '70px', borderRadius: '8px', background: 'rgba(96, 165, 250,0.14)', marginBottom: '24px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '70px', height: '70px', borderRadius: '2px', background: 'rgba(96, 165, 250,0.14)', marginBottom: '24px' }}>
             <Lock size={32} color="var(--accent-primary)" />
           </div>
 
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(239, 90, 43, 0.12)', border: '1px solid rgba(239, 90, 43, 0.24)', borderRadius: '8px', padding: '8px 12px', color: '#ef5a2b', fontSize: '0.8rem', fontWeight: '800', marginBottom: '20px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(239, 90, 43, 0.12)', border: '1px solid rgba(239, 90, 43, 0.24)', borderRadius: '2px', padding: '8px 12px', color: '#ef5a2b', fontSize: '0.8rem', fontWeight: '800', marginBottom: '20px' }}>
             <Crown size={12} /> PREMIUM REQUIRED
           </div>
 
@@ -66,7 +66,7 @@ export default function PremiumGate({ children }) {
             Get unlimited access to Topical Extraction, AI Tutor, Examiner Reports, and Mega-PDF compiling with a Premium Pass.
           </p>
 
-          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '20px', marginBottom: '28px', textAlign: 'left' }}>
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '2px', padding: '20px', marginBottom: '28px', textAlign: 'left' }}>
             {['Unlimited Topical Extractions', 'AI Study Tutor 24/7', 'Examiner Intelligence Reports', 'Priority Server Speed'].map((f, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                 <Sparkles size={14} color="var(--accent-primary)" /> {f}

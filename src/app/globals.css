@@ -95,7 +95,7 @@ a {
 
 ::-webkit-scrollbar-thumb {
   background: rgba(241, 234, 217, 0.16);
-  border-radius: 8px;
+  border-radius: 2px;
   border: 2px solid var(--bg-color);
 }
 

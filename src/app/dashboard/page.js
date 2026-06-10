@@ -460,7 +460,7 @@ export default function DashboardPage() {
                       }}
                       style={{
                         padding: '8px 16px',
-                        borderRadius: '8px',
+                        borderRadius: '2px',
                         border: selectedYears.includes(y) ? '1px solid #ef5a2b' : '1px solid rgba(16, 32, 51, 0.18)',
                         background: selectedYears.includes(y) ? 'rgba(15,118,110,0.15)' : 'transparent',
                         color: selectedYears.includes(y) ? '#ef5a2b' : 'var(--text-secondary)',
@@ -493,7 +493,7 @@ export default function DashboardPage() {
                   disabled={extracting || !topicInput.trim() || selectedYears.length === 0}
                   style={{
                     padding: '14px 28px',
-                    borderRadius: '8px',
+                    borderRadius: '2px',
                     background: extracting ? 'rgba(239, 90, 43, 0.18)' : 'linear-gradient(135deg, #ef5a2b, #ef5a2b)',
                     border: 'none',
                     color: 'white',
@@ -522,7 +522,7 @@ export default function DashboardPage() {
                   disabled={generatingNotes || !subjectCode.trim() || !topicInput.trim()}
                   style={{
                     padding: '14px 28px',
-                    borderRadius: '8px',
+                    borderRadius: '2px',
                     background: generatingNotes ? 'rgba(239, 90, 43, 0.15)' : 'linear-gradient(135deg, #ef5a2b, #c93f17)',
                     border: 'none',
                     color: generatingNotes ? 'var(--text-muted)' : '#06101d',
@@ -567,7 +567,7 @@ export default function DashboardPage() {
         <section style={{ maxWidth: '900px', margin: '40px auto 0' }} className="fade-in">
           <div style={{
             padding: '30px',
-            borderRadius: '8px',
+            borderRadius: '2px',
             background: 'var(--bg-panel)',
             border: '1px solid rgba(255, 255, 255, 0.05)',
             backdropFilter: 'blur(10px)'
@@ -588,7 +588,7 @@ export default function DashboardPage() {
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Loading saved topicals...</span>
               </div>
             ) : savedTopicals.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', border: '1px dashed rgba(255,255,255,0.06)', borderRadius: '8px' }}>
+              <div style={{ textAlign: 'center', padding: '40px 20px', border: '1px dashed rgba(255,255,255,0.06)', borderRadius: '2px' }}>
                 <BookCopy size={32} color="var(--text-muted)" style={{ marginBottom: '12px' }} />
                 <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>No compiled booklets in your library yet.</p>
                 <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>Extract a topic using the tool above to save it here automatically.</p>
@@ -605,7 +605,7 @@ export default function DashboardPage() {
                       padding: '16px 20px',
                       background: 'rgba(255, 255, 255, 0.02)',
                       border: '1px solid rgba(255, 255, 255, 0.04)',
-                      borderRadius: '8px',
+                      borderRadius: '2px',
                       flexWrap: 'wrap',
                       gap: '15px',
                       transition: 'all 0.2s'
@@ -615,7 +615,7 @@ export default function DashboardPage() {
                   >
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ background: 'rgba(96, 165, 250, 0.15)', color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: '700', padding: '2px 8px', borderRadius: '4px' }}>
+                        <span style={{ background: 'rgba(96, 165, 250, 0.15)', color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: '700', padding: '2px 8px', borderRadius: '2px' }}>
                           {topical.subjectCode}
                         </span>
                         <h4 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1rem', fontWeight: '600' }}>
@@ -639,7 +639,7 @@ export default function DashboardPage() {
                             background: 'rgba(96, 165, 250, 0.1)',
                             border: '1px solid rgba(96, 165, 250, 0.2)',
                             color: 'var(--accent-primary)',
-                            borderRadius: '8px',
+                            borderRadius: '2px',
                             padding: '8px 14px',
                             fontSize: '0.8rem',
                             fontWeight: '600',
@@ -662,7 +662,7 @@ export default function DashboardPage() {
                             background: 'rgba(168, 85, 247, 0.1)',
                             border: '1px solid rgba(168, 85, 247, 0.2)',
                             color: '#ef5a2b',
-                            borderRadius: '8px',
+                            borderRadius: '2px',
                             padding: '8px 14px',
                             fontSize: '0.8rem',
                             fontWeight: '600',
@@ -685,7 +685,7 @@ export default function DashboardPage() {
                           background: 'rgba(220, 38, 38, 0.1)',
                           border: '1px solid rgba(220, 38, 38, 0.2)',
                           color: '#dc2626',
-                          borderRadius: '8px',
+                          borderRadius: '2px',
                           padding: '8px 12px',
                           fontSize: '0.8rem',
                           fontWeight: '600',
@@ -722,7 +722,7 @@ export default function DashboardPage() {
                 </div>
                 <button
                   onClick={() => setExaminerNotes(null)}
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(16, 32, 51, 0.18)', color: 'var(--text-secondary)', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem' }}
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(16, 32, 51, 0.18)', color: 'var(--text-secondary)', padding: '8px 16px', borderRadius: '2px', cursor: 'pointer', fontSize: '0.85rem' }}
                 >
                   <X size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Close
                 </button>
@@ -813,7 +813,7 @@ export default function DashboardPage() {
                   onClick={() => window.open(`/print-pack?subjectCode=${subjectCode}`, '_blank')}
                   className="btn-primary"
                   style={{
-                    borderRadius: '8px',
+                    borderRadius: '2px',
                     padding: '10px 24px',
                     display: 'flex',
                     alignItems: 'center',
@@ -941,7 +941,7 @@ export default function DashboardPage() {
                   <div style={{
                     display: 'inline-block',
                     padding: '10px 14px',
-                    borderRadius: '8px',
+                    borderRadius: '2px',
                     background: msg.role === 'user' ? 'var(--accent-primary)' : 'rgba(255,255,255,0.05)',
                     color: msg.role === 'user' ? 'white' : 'var(--text-secondary)',
                     fontSize: '0.85rem',
@@ -960,7 +960,7 @@ export default function DashboardPage() {
               <input
                 type="text"
                 className="search-input"
-                style={{ padding: '12px 45px 12px 16px', fontSize: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}
+                style={{ padding: '12px 45px 12px 16px', fontSize: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '2px' }}
                 placeholder="Ask a syllabus doubt..."
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
@@ -982,7 +982,7 @@ export default function DashboardPage() {
             background: toast.type === 'success' ? '#c93f17' : toast.type === 'info' ? 'var(--accent-primary)' : '#dc2626',
             color: 'white',
             padding: '12px 24px',
-            borderRadius: '8px',
+            borderRadius: '2px',
             zIndex: 2000,
             fontWeight: '600',
             boxShadow: '0 4px 20px rgba(0,0,0,0.3)',

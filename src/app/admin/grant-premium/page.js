@@ -74,7 +74,7 @@ export default function GrantPremiumPage() {
       <div style={{
         textAlign: "center",
         padding: "40px",
-        borderRadius: "16px",
+        borderRadius: "2px",
         background: "rgba(255,255,255,0.05)",
         border: "1px solid rgba(255,255,255,0.1)",
         maxWidth: "500px",
@@ -92,7 +92,7 @@ export default function GrantPremiumPage() {
                 background: "white",
                 color: "black",
                 border: "none",
-                borderRadius: "12px",
+                borderRadius: "2px",
                 padding: "14px 20px",
                 fontSize: "1rem",
                 fontWeight: "700",
@@ -136,7 +136,7 @@ export default function GrantPremiumPage() {
               padding: "10px 24px",
               background: "#6c63ff",
               color: "#fff",
-              borderRadius: "8px",
+              borderRadius: "2px",
               textDecoration: "none",
             }}>
               Go to Dashboard →

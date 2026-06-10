@@ -93,7 +93,7 @@ function SuccessContent() {
       <div style={{ textAlign: 'center', padding: '40px 0' }}>
         <div style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          width: '80px', height: '80px', borderRadius: '8px',
+          width: '80px', height: '80px', borderRadius: '2px',
           background: 'rgba(96, 165, 250, 0.08)', marginBottom: '28px'
         }}>
           <div style={{
@@ -148,7 +148,7 @@ function SuccessContent() {
       {/* Success glow animation */}
       <div style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: '90px', height: '90px', borderRadius: '8px',
+        width: '90px', height: '90px', borderRadius: '2px',
         background: 'rgba(0, 230, 118, 0.08)',
         boxShadow: '0 0 40px rgba(0, 230, 118, 0.15)',
         marginBottom: '28px',
@@ -160,7 +160,7 @@ function SuccessContent() {
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: '6px',
         background: 'rgba(0, 230, 118, 0.1)', border: '1px solid rgba(0, 230, 118, 0.2)',
-        borderRadius: '8px', padding: '8px 12px', color: '#ef5a2b',
+        borderRadius: '2px', padding: '8px 12px', color: '#ef5a2b',
         fontSize: '0.8rem', fontWeight: '800', marginBottom: '20px'
       }}>
         <Sparkles size={12} /> PREMIUM ACTIVATED
@@ -182,7 +182,7 @@ function SuccessContent() {
       {/* Feature summary */}
       <div style={{
         background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: '8px', padding: '24px', maxWidth: '380px', margin: '0 auto 30px',
+        borderRadius: '2px', padding: '24px', maxWidth: '380px', margin: '0 auto 30px',
         textAlign: 'left'
       }}>
         {['Unlimited Topical Extractions', 'Unlimited AI Tutor Sessions', 'Examiner Intelligence Reports', 'Priority Server Speed'].map((feature, i) => (
