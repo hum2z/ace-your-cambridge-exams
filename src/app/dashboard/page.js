@@ -389,7 +389,7 @@ export default function DashboardPage() {
         <section id="topical-extractor-card" className="site-section fade-in" style={{ marginTop: '28px' }}>
           <div className="premium-card" style={{ padding: '30px', border: '1px solid rgba(15,118,110,0.3)', background: 'rgba(15,118,110,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <BookCopy size={22} color="#0f766e" />
+              <BookCopy size={22} color="#ef5a2b" />
               <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--text-primary)' }}>Topical Snippet Extractor</h3>
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px' }}>
@@ -461,9 +461,9 @@ export default function DashboardPage() {
                       style={{
                         padding: '8px 16px',
                         borderRadius: '8px',
-                        border: selectedYears.includes(y) ? '1px solid #0f766e' : '1px solid rgba(16, 32, 51, 0.18)',
+                        border: selectedYears.includes(y) ? '1px solid #ef5a2b' : '1px solid rgba(16, 32, 51, 0.18)',
                         background: selectedYears.includes(y) ? 'rgba(15,118,110,0.15)' : 'transparent',
-                        color: selectedYears.includes(y) ? '#0f766e' : 'var(--text-secondary)',
+                        color: selectedYears.includes(y) ? '#ef5a2b' : 'var(--text-secondary)',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -481,7 +481,7 @@ export default function DashboardPage() {
 
               {/* Status text */}
               {extractStatus && (
-                <p style={{ fontSize: '0.85rem', color: '#0f766e', margin: 0 }}>{extractStatus}</p>
+                <p style={{ fontSize: '0.85rem', color: '#ef5a2b', margin: 0 }}>{extractStatus}</p>
               )}
 
               {/* Action buttons row */}
@@ -494,7 +494,7 @@ export default function DashboardPage() {
                   style={{
                     padding: '14px 28px',
                     borderRadius: '8px',
-                    background: extracting ? 'rgba(15,118,110,0.2)' : 'linear-gradient(135deg, #0f766e, #0f766e)',
+                    background: extracting ? 'rgba(239, 90, 43, 0.18)' : 'linear-gradient(135deg, #ef5a2b, #ef5a2b)',
                     border: 'none',
                     color: 'white',
                     fontWeight: '700',
@@ -523,7 +523,7 @@ export default function DashboardPage() {
                   style={{
                     padding: '14px 28px',
                     borderRadius: '8px',
-                    background: generatingNotes ? 'rgba(0,230,118,0.15)' : 'linear-gradient(135deg, #00b86b, #0f9f6e)',
+                    background: generatingNotes ? 'rgba(239, 90, 43, 0.15)' : 'linear-gradient(135deg, #ef5a2b, #c93f17)',
                     border: 'none',
                     color: generatingNotes ? 'var(--text-muted)' : '#06101d',
                     fontWeight: '700',
@@ -549,12 +549,12 @@ export default function DashboardPage() {
             {extractedFiles && (
               <div style={{ display: 'flex', gap: '15px', marginTop: '20px', flexWrap: 'wrap' }} className="fade-in">
                 {extractedFiles.qpUrl && (
-                  <button type="button" onClick={() => downloadFile(extractedFiles.qpUrl, extractedFiles.qpName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, var(--accent-primary), #1d4ed8)' }}>
+                  <button type="button" onClick={() => downloadFile(extractedFiles.qpUrl, extractedFiles.qpName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, var(--accent-primary), #c93f17)' }}>
                     <Download size={16} style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline-block' }} /> Download Question Paper
                   </button>
                 )}
                 {extractedFiles.msUrl && (
-                  <button type="button" onClick={() => downloadFile(extractedFiles.msUrl, extractedFiles.msName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #0f766e, #115e59)' }}>
+                  <button type="button" onClick={() => downloadFile(extractedFiles.msUrl, extractedFiles.msName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #ef5a2b, #c93f17)' }}>
                     <Download size={16} style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline-block' }} /> Download Mark Scheme
                   </button>
                 )}
@@ -661,7 +661,7 @@ export default function DashboardPage() {
                           style={{
                             background: 'rgba(168, 85, 247, 0.1)',
                             border: '1px solid rgba(168, 85, 247, 0.2)',
-                            color: '#0f766e',
+                            color: '#ef5a2b',
                             borderRadius: '8px',
                             padding: '8px 14px',
                             fontSize: '0.8rem',
@@ -714,7 +714,7 @@ export default function DashboardPage() {
             <div className="premium-card" style={{ padding: '30px', border: '1px solid rgba(0,230,118,0.3)', background: 'rgba(0,230,118,0.03)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Sparkles color="#0f9f6e" size={24} />
+                  <Sparkles color="#c93f17" size={24} />
                   <div>
                     <h3 style={{ fontSize: '1.6rem', margin: 0, color: 'var(--text-primary)' }}>Examiner Intelligence Report</h3>
                     <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{examinerNotes.subjectCode} · {examinerNotes.topic} · {examinerNotes.yearsAnalyzed}</p>
@@ -818,7 +818,7 @@ export default function DashboardPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    background: 'linear-gradient(135deg, var(--accent-primary), #1d4ed8)',
+                    background: 'linear-gradient(135deg, var(--accent-primary), #c93f17)',
                     fontWeight: '600',
                     fontSize: '0.9rem',
                     border: 'none'
@@ -979,7 +979,7 @@ export default function DashboardPage() {
             top: '30px',
             left: '50%',
             transform: 'translateX(-50%)',
-            background: toast.type === 'success' ? '#0f9f6e' : toast.type === 'info' ? 'var(--accent-primary)' : '#dc2626',
+            background: toast.type === 'success' ? '#c93f17' : toast.type === 'info' ? 'var(--accent-primary)' : '#dc2626',
             color: 'white',
             padding: '12px 24px',
             borderRadius: '8px',

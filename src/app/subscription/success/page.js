@@ -154,13 +154,13 @@ function SuccessContent() {
         marginBottom: '28px',
         animation: 'pulse 2s ease-in-out infinite'
       }}>
-        <CheckCircle size={48} color="#0f9f6e" />
+        <CheckCircle size={48} color="#ef5a2b" />
       </div>
 
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: '6px',
         background: 'rgba(0, 230, 118, 0.1)', border: '1px solid rgba(0, 230, 118, 0.2)',
-        borderRadius: '8px', padding: '8px 12px', color: '#0f9f6e',
+        borderRadius: '8px', padding: '8px 12px', color: '#ef5a2b',
         fontSize: '0.8rem', fontWeight: '800', marginBottom: '20px'
       }}>
         <Sparkles size={12} /> PREMIUM ACTIVATED
@@ -187,7 +187,7 @@ function SuccessContent() {
       }}>
         {['Unlimited Topical Extractions', 'Unlimited AI Tutor Sessions', 'Examiner Intelligence Reports', 'Priority Server Speed'].map((feature, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            <CheckCircle size={16} color="#0f9f6e" />
+            <CheckCircle size={16} color="#ef5a2b" />
             {feature}
           </div>
         ))}

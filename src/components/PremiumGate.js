@@ -34,7 +34,7 @@ export default function PremiumGate({ children }) {
     const notesLeft = subscription?.notesUsesRemaining ?? 0
     return (
       <>
-        <div style={{ background: 'rgba(15,118,110,0.12)', borderBottom: '1px solid rgba(15,118,110,0.25)', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', flexWrap: 'wrap', fontSize: '0.85rem', color: '#0f766e', fontWeight: 600 }}>
+        <div style={{ background: 'rgba(239, 90, 43, 0.12)', borderBottom: '1px solid rgba(239, 90, 43, 0.25)', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', flexWrap: 'wrap', fontSize: '0.85rem', color: '#ef5a2b', fontWeight: 600 }}>
           <Sparkles size={14} />
           <span>Free trial · {topicalLeft} topical extraction · {notesLeft} notes generation left</span>
           <Link href="/subscription" style={{ color: 'var(--accent-primary)', textDecoration: 'underline' }}>Upgrade</Link>
@@ -55,7 +55,7 @@ export default function PremiumGate({ children }) {
             <Lock size={32} color="var(--accent-primary)" />
           </div>
 
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(15, 118, 110,0.12)', border: '1px solid rgba(15, 118, 110,0.24)', borderRadius: '8px', padding: '8px 12px', color: '#0f766e', fontSize: '0.8rem', fontWeight: '800', marginBottom: '20px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(239, 90, 43, 0.12)', border: '1px solid rgba(239, 90, 43, 0.24)', borderRadius: '8px', padding: '8px 12px', color: '#ef5a2b', fontSize: '0.8rem', fontWeight: '800', marginBottom: '20px' }}>
             <Crown size={12} /> PREMIUM REQUIRED
           </div>
 
