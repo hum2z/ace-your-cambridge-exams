@@ -13,9 +13,9 @@ export default function Header() {
 
   return (
     <header className="glass-header">
-      <Link href="/" className="brand-mark" aria-label="Past Paper home">
+      <Link href="/" className="brand-mark" aria-label="AceurExam home">
         <span className="brand-icon" aria-hidden="true"></span>
-        <span className="brand-name">Past Paper</span>
+        <span className="brand-name">AceurExam</span>
       </Link>
 
       <nav className="nav-links" aria-label="Primary navigation">
