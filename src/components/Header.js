@@ -2,17 +2,26 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { LogIn, LogOut } from 'lucide-react'
 import { useAuth } from './AuthContext'
 
 export default function Header() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   const isActive = (path) => pathname === path
 
   return (
-    <header className="glass-header">
+    <header className={`glass-header ${scrolled ? 'scrolled' : ''}`}>
       <Link href="/" className="brand-mark" aria-label="AceurExam home">
         <span className="brand-icon" aria-hidden="true"></span>
         <span className="brand-name">AceurExam</span>

@@ -1,5 +1,7 @@
 import './globals.css'
 import Header from '@/components/Header'
+import Footer from '@/components/Footer'
+import ScrollReveal from '@/components/ScrollReveal'
 import { AuthProvider } from '@/components/AuthContext'
 
 export const metadata = {
@@ -14,6 +16,8 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <Header />
           <main>{children}</main>
+          <Footer />
+          <ScrollReveal />
         </AuthProvider>
       </body>
     </html>

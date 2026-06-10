@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertCircle, Check, ChevronDown, ChevronUp, CreditCard, Crown, Shield, Zap } from 'lucide-react'
+import { AlertCircle, Check, ChevronDown, CreditCard, Crown, Shield, Zap } from 'lucide-react'
 import { useAuth } from '@/components/AuthContext'
 
 const features = [
@@ -180,7 +180,7 @@ export default function SubscriptionPage() {
               <div key={faq.q} className={`faq-item ${isOpen ? 'open' : ''}`}>
                 <button className="faq-question" onClick={() => setOpenFaq(isOpen ? null : index)} id={`faq-btn-${index}`}>
                   <span>{faq.q}</span>
-                  {isOpen ? <ChevronUp size={18} color="var(--accent-soft)" /> : <ChevronDown size={18} />}
+                  <ChevronDown size={18} color={isOpen ? 'var(--accent-soft)' : 'currentColor'} aria-hidden="true" />
                 </button>
                 <div className="faq-answer">
                   <p>{faq.a}</p>
