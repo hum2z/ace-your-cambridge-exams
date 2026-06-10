@@ -575,7 +575,7 @@ export default function DashboardPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Layers size={22} color="var(--accent-primary)" />
-                <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--text-primary)' }}>📚 My Compiled Library</h3>
+                <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--text-primary)' }}>My Compiled Library</h3>
               </div>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 {savedTopicals.length} booklet{savedTopicals.length !== 1 ? 's' : ''} saved
