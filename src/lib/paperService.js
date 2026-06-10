@@ -24,7 +24,20 @@ const SUBJECT_MAP = {
   '0455': { level: 'IGCSE', name: 'Economics (0455)' },
 };
 
-// Edexcel IAL unit code → URL slug
+// Edexcel IAL unit prefix → Pearson subject directory (used in PDF URL path)
+const EDEXCEL_SUBJECT_DIR = {
+  WMA: 'Mathematics', WFM: 'Mathematics', WMS: 'Mathematics',
+  WMD: 'Mathematics', WME: 'Mathematics', WST: 'Mathematics',
+  WPH: 'Physics',
+  WCH: 'Chemistry',
+  WBI: 'Biology',
+  WEC: 'Economics',
+  WBS: 'Business',
+  WAC: 'Accounting',
+  WGE: 'Geography',
+};
+
+// Edexcel IAL unit code → human-readable slug (display + fallback URL slug)
 const EDEXCEL_UNIT_MAP = {
   // Mathematics
   'WMA11': 'pure-mathematics-1',
@@ -71,29 +84,39 @@ const EDEXCEL_UNIT_MAP = {
 const dayRange = (start, end) =>
   Array.from({ length: end - start + 1 }, (_, i) => String(i + start).padStart(2, '0'));
 
-// Edexcel IAL sessions with candidate exam date ranges per year
-// Edexcel exams happen on specific days; we try a range and filterExistingPapers prunes misses
+// Edexcel IAL sessions. Exam papers (que) and mark schemes (rms) are published
+// on different dates per session — Pearson uses the publish date in the filename.
+// We try ranges that cover the historical publish windows; filterExistingPapers prunes misses.
+//   Jan exams: papers ~Jan 8–22, MS published ~early March
+//   Jun exams: papers ~May 8–Jun 15, MS published ~mid August
+//   Oct exams: papers ~Oct 8–28, MS published ~mid January of the following year
 export const EDEXCEL_SESSIONS = [
   {
     code: 'Jan',
     label: 'January',
     shortLabel: 'Jan',
-    dates: (year) => dayRange(9, 20).map(d => `${year}01${d}`),
+    qpDates: (year) => dayRange(8, 25).map(d => `${year}01${d}`),
+    msDates: (year) => dayRange(1, 25).map(d => `${year}03${d}`),
   },
   {
     code: 'Jun',
     label: 'May / Jun',
     shortLabel: 'May-Jun',
-    dates: (year) => [
-      ...dayRange(24, 31).map(d => `${year}05${d}`),
-      ...dayRange(1, 24).map(d => `${year}06${d}`),
+    qpDates: (year) => [
+      ...dayRange(8, 31).map(d => `${year}05${d}`),
+      ...dayRange(1, 17).map(d => `${year}06${d}`),
     ],
+    msDates: (year) => dayRange(10, 25).map(d => `${year}08${d}`),
   },
   {
     code: 'Oct',
     label: 'October',
     shortLabel: 'Oct',
-    dates: (year) => dayRange(9, 20).map(d => `${year}10${d}`),
+    qpDates: (year) => [
+      ...dayRange(8, 31).map(d => `${year}10${d}`),
+      ...dayRange(1, 7).map(d => `${year}11${d}`),
+    ],
+    msDates: (year) => dayRange(10, 25).map(d => `${year + 1}01${d}`),
   },
 ];
 
@@ -135,19 +158,24 @@ export const getSubjectInfo = (subjectCode) => {
   const level = isIGCSE ? 'IGCSE' : 'A Levels';
   return { level, name: `Subject (${subjectCode})` };
 }
-// Edexcel IAL URL builder
-// Filename pattern: {unit}_{paper}_{type}_{YYYYMMDD}.pdf
-// type: 'que' for question paper, 'msc' for mark scheme
-const buildEdexcelUrl = (unit, paper, year, dateStr, comp) => {
+// Edexcel IAL URL builder — papers are hosted by Pearson on qualifications.pearson.com
+// Pearson filename pattern: {unit}-{paper}-{type}-{YYYYMMDD}.pdf
+//   type: 'que' for question paper, 'rms' for revised mark scheme
+// Pearson stores papers under two parallel paths — newer (≈May 2023+) files live under
+// "International-Advanced-Level" (hyphens) and older files live under
+// "International Advanced Level" (URL-encoded spaces). We emit both forms as
+// separate candidates so filterExistingPapers can pick whichever actually exists.
+const buildEdexcelUrls = (unit, paper, dateStr, comp) => {
   const unitLower = unit.toLowerCase();
   const paperStr = paper.toString().padStart(2, '0');
-  const type = comp === 'qp' ? 'que' : 'msc';
-  const slug = EDEXCEL_UNIT_MAP[unit]
-    ? `${EDEXCEL_UNIT_MAP[unit]}-${unitLower}`
-    : unitLower;
-  const fileName = `${unitLower}_${paperStr}_${type}_${dateStr}.pdf`;
-  const url = `https://bestexamhelp.com/exam/edexcel-international-a-level/${slug}/${year}/${fileName}`;
-  return { fileName, url };
+  const type = comp === 'qp' ? 'que' : 'rms';
+  const subjectDir = EDEXCEL_SUBJECT_DIR[unit.slice(0, 3)] || 'Mathematics';
+  const fileName = `${unitLower}-${paperStr}-${type}-${dateStr}.pdf`;
+  const base = 'https://qualifications.pearson.com/content/dam/pdf';
+  return [
+    { fileName, url: `${base}/International-Advanced-Level/${subjectDir}/2018/Exam-materials/${fileName}` },
+    { fileName, url: `${base}/International%20Advanced%20Level/${subjectDir}/2018/Exam-materials/${fileName}` },
+  ];
 };
 
 const generateEdexcelPaperList = (subjectCode, filters = {}) => {
@@ -161,20 +189,22 @@ const generateEdexcelPaperList = (subjectCode, filters = {}) => {
   const papers = [];
   for (const year of years) {
     for (const session of sessions) {
-      const dates = session.dates(year);
       for (const comp of components) {
+        const dates = comp === 'qp' ? session.qpDates(year) : session.msDates(year);
         for (const dateStr of dates) {
-          const { fileName, url } = buildEdexcelUrl(unit, paper, year, dateStr, comp);
-          papers.push({
-            id: `${year}-${session.code}-${comp}-${paper}-${dateStr}`,
-            year,
-            term: session.code,
-            termLabel: session.label,
-            paperNumber: parseInt(paper),
-            variant: 1,
-            component: comp.toUpperCase(),
-            fileName,
-            url,
+          const variants = buildEdexcelUrls(unit, paper, dateStr, comp);
+          variants.forEach(({ fileName, url }, idx) => {
+            papers.push({
+              id: `${year}-${session.code}-${comp}-${paper}-${dateStr}-${idx}`,
+              year,
+              term: session.code,
+              termLabel: session.label,
+              paperNumber: parseInt(paper),
+              variant: 1,
+              component: comp.toUpperCase(),
+              fileName,
+              url,
+            });
           });
         }
       }
@@ -282,7 +312,11 @@ export const filterExistingPapers = async (papers, concurrency = 15) => {
       chunk.map(async (paper) => {
         try {
           const res = await fetch(paper.url, { method: 'HEAD', headers: FETCH_HEADERS });
-          return res.ok ? paper : null;
+          // Pearson 302-redirects missing PDFs to a 200 HTML 404 page,
+          // so res.ok alone isn't enough — also require the final content-type to be PDF.
+          if (!res.ok) return null;
+          const ct = res.headers.get('content-type') || '';
+          return ct.includes('pdf') ? paper : null;
         } catch {
           return null;
         }

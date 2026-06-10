@@ -21,8 +21,11 @@ async function filterExistingPapers(papers, concurrency = 15) {
       chunk.map(async (paper) => {
         try {
           const res = await fetch(paper.url, { method: 'HEAD', headers: FETCH_HEADERS });
+          // Some hosts (e.g. Pearson) 302-redirect missing PDFs to a 200 HTML 404 page,
+          // so res.ok alone isn't enough — also require the final content-type to be PDF.
           if (res.ok) {
-            return paper;
+            const ct = res.headers.get('content-type') || '';
+            if (ct.includes('pdf')) return paper;
           }
         } catch (e) {
           console.warn(`[filterExistingPapers] HEAD check error for ${paper.fileName}:`, e.message);
