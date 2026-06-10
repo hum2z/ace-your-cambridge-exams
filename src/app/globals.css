@@ -1,25 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;0,9..144,900;1,9..144,400;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  --bg-color: #f1ead9;
-  --bg-elevated: #ebe3d0;
-  --bg-panel: rgba(255, 251, 240, 0.78);
-  --paper: #f6efdd;
-  --paper-deep: #e9dfc6;
-  --ink: #1b1714;
-  --ink-soft: #3b3530;
-  --accent-primary: #e34a1f;
-  --accent-secondary: #c93f17;
+  --bg-color: #14110e;
+  --bg-elevated: #1c1813;
+  --bg-panel: rgba(28, 24, 19, 0.78);
+  --paper: #1c1813;
+  --paper-deep: #15110d;
+  --ink: #f1ead9;
+  --ink-soft: #d4cbb5;
+  --accent-primary: #ef5a2b;
+  --accent-secondary: #ff7a4a;
   --accent-soft: #f0a48a;
-  --success: #3f7a4a;
-  --danger: #b13a1d;
-  --warning: #c98a1d;
-  --text-primary: #1b1714;
-  --text-secondary: #4a4239;
-  --text-muted: #8a7e6e;
-  --card-bg: rgba(255, 251, 240, 0.72);
-  --card-border: rgba(27, 23, 20, 0.14);
-  --glass-bg: rgba(246, 239, 221, 0.82);
+  --success: #6fb87d;
+  --danger: #e05a3b;
+  --warning: #e0a83d;
+  --text-primary: #f1ead9;
+  --text-secondary: #b8ad94;
+  --text-muted: #6e6557;
+  --card-bg: rgba(28, 24, 19, 0.72);
+  --card-border: rgba(241, 234, 217, 0.12);
+  --glass-bg: rgba(20, 17, 14, 0.82);
   --glass-blur: blur(12px);
   --max-page: 1160px;
   --serif: 'Fraunces', 'Times New Roman', serif;
@@ -39,8 +39,8 @@ html {
 
 body {
   background:
-    radial-gradient(circle at 88% 12%, rgba(227, 74, 31, 0.07), transparent 36vw),
-    radial-gradient(circle at 8% 92%, rgba(227, 74, 31, 0.05), transparent 32vw),
+    radial-gradient(circle at 88% 12%, rgba(239, 90, 43, 0.12), transparent 36vw),
+    radial-gradient(circle at 8% 92%, rgba(239, 90, 43, 0.08), transparent 32vw),
     var(--bg-color);
   color: var(--text-primary);
   font-family: var(--sans);
@@ -57,10 +57,10 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background-image:
-    radial-gradient(ellipse 60% 40% at 20% 30%, transparent 40%, rgba(27, 23, 20, 0.025) 40.5%, transparent 41%),
-    radial-gradient(ellipse 80% 50% at 70% 60%, transparent 50%, rgba(27, 23, 20, 0.02) 50.5%, transparent 51%),
-    radial-gradient(ellipse 50% 70% at 85% 20%, transparent 45%, rgba(27, 23, 20, 0.022) 45.5%, transparent 46%);
-  opacity: 0.7;
+    radial-gradient(ellipse 60% 40% at 20% 30%, transparent 40%, rgba(241, 234, 217, 0.04) 40.5%, transparent 41%),
+    radial-gradient(ellipse 80% 50% at 70% 60%, transparent 50%, rgba(241, 234, 217, 0.035) 50.5%, transparent 51%),
+    radial-gradient(ellipse 50% 70% at 85% 20%, transparent 45%, rgba(241, 234, 217, 0.04) 45.5%, transparent 46%);
+  opacity: 0.8;
 }
 
 button,
@@ -316,12 +316,12 @@ main {
   width: 380px;
   height: 380px;
   background-image:
-    radial-gradient(ellipse 70% 50% at 50% 50%, transparent 60%, rgba(227, 74, 31, 0.18) 60.5%, transparent 61%),
-    radial-gradient(ellipse 55% 40% at 50% 50%, transparent 70%, rgba(27, 23, 20, 0.1) 70.5%, transparent 71%),
-    radial-gradient(ellipse 85% 60% at 50% 50%, transparent 50%, rgba(27, 23, 20, 0.08) 50.5%, transparent 51%);
+    radial-gradient(ellipse 70% 50% at 50% 50%, transparent 60%, rgba(239, 90, 43, 0.32) 60.5%, transparent 61%),
+    radial-gradient(ellipse 55% 40% at 50% 50%, transparent 70%, rgba(241, 234, 217, 0.16) 70.5%, transparent 71%),
+    radial-gradient(ellipse 85% 60% at 50% 50%, transparent 50%, rgba(241, 234, 217, 0.12) 50.5%, transparent 51%);
   pointer-events: none;
   z-index: 0;
-  opacity: 0.7;
+  opacity: 0.85;
 }
 
 .hero-copy {
@@ -551,7 +551,7 @@ main {
 
 .timeline-line {
   height: 2px;
-  background: rgba(27, 23, 20, 0.1);
+  background: rgba(241, 234, 217, 0.08);
   overflow: hidden;
 }
 
@@ -659,7 +659,7 @@ main {
 .progress-track {
   height: 2px;
   overflow: hidden;
-  background: rgba(27, 23, 20, 0.1);
+  background: rgba(241, 234, 217, 0.08);
 }
 
 .progress-fill {
