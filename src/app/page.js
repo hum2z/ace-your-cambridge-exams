@@ -42,14 +42,16 @@ export default function HomePage() {
         <div className="hero-copy fade-in">
           <div className="eyebrow">
             <span className="status-dot" aria-hidden="true"></span>
-            Paper archive online
+            52.2053° N / 0.1218° E &nbsp;·&nbsp; Cambridge archive
           </div>
 
           <div>
-            <p className="section-kicker">Cambridge revision workspace</p>
-            <h1 className="section-heading">Turn past papers into a study plan.</h1>
+            <p className="section-kicker">A revision workspace</p>
+            <h1 className="section-heading">
+              Past papers, made <em>useful</em>.
+            </h1>
             <p className="section-copy">
-              Build topical packs, generate examiner notes, and keep an AI tutor beside the questions you are actually solving.
+              Quiet tools for ambitious students — build topical packs, read examiner notes, and study beside an AI tutor that stays out of the way.
             </p>
           </div>
 
@@ -121,8 +123,10 @@ export default function HomePage() {
 
       <section className="site-section split-section">
         <div>
-          <p className="section-kicker">Workflow</p>
-          <h2 className="section-heading">One flow from topic search to printable practice.</h2>
+          <p className="section-kicker">The workflow</p>
+          <h2 className="section-heading">
+            From topic to <em>printable</em> in one quiet loop.
+          </h2>
           <p className="section-copy">
             The interface is arranged around the real exam-prep loop: search, extract, read examiner guidance, ask the tutor, then export the set.
           </p>
@@ -147,9 +151,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="site-section" style={{ paddingTop: 84 }}>
-        <p className="section-kicker">Tools</p>
-        <h2 className="section-heading">Everything is organized like a working desk.</h2>
+      <section className="site-section" style={{ paddingTop: 96 }}>
+        <p className="section-kicker">The tools</p>
+        <h2 className="section-heading">
+          Organized like a <em>working desk</em>.
+        </h2>
         <div className="feature-grid">
           {features.map(({ icon: Icon, title, text }) => (
             <article className="panel feature-card" key={title}>

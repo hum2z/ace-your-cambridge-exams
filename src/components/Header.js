@@ -14,8 +14,8 @@ export default function Header() {
   return (
     <header className="glass-header">
       <Link href="/" className="brand-mark" aria-label="Past Paper home">
-        <span className="brand-icon">P</span>
-        <span className="brand-name">PastPaper</span>
+        <span className="brand-icon" aria-hidden="true"></span>
+        <span className="brand-name">Past Paper</span>
       </Link>
 
       <nav className="nav-links" aria-label="Primary navigation">
