@@ -254,10 +254,31 @@ async function extractQuestionsMetadata(buffer) {
 }
 
 /**
- * Ask Groq to identify which page indices are about the requested topic.
+ * Parse a raw topic string into a list of individual topics.
+ * Splits on commas and the word "and" so a student can type, e.g.,
+ * "bonding and organic chemistry" or "kinematics, dynamics, electricity"
+ * and get a separate topic for each. Duplicates and blanks are removed.
+ */
+function parseTopics(raw) {
+  if (!raw) return [];
+  const seen = new Set();
+  const topics = [];
+  for (const part of raw.split(/\s*,\s*|\s+and\s+/i)) {
+    const t = part.trim();
+    if (t.length === 0) continue;
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    topics.push(t);
+  }
+  return topics;
+}
+
+/**
+ * Ask Groq to identify which page indices are about any of the requested topics.
  * Returns an array of { pageIndex, questionNumbers } objects.
  */
-async function classifyPages(pageTexts, topic, paperFileName, apiKey, model) {
+async function classifyPages(pageTexts, topics, paperFileName, apiKey, model) {
   if (!pageTexts || pageTexts.length === 0) return [];
 
   // Build a complete summary of each page for classification
@@ -265,12 +286,14 @@ async function classifyPages(pageTexts, topic, paperFileName, apiKey, model) {
     .map((text, i) => `PAGE ${i + 1}: ${(text || '').slice(0, 4000)}`)
     .join('\n\n---\n\n');
 
+  const topicLabel = topics.map(t => `"${t}"`).join(', ');
+
   const prompt = `
 You are a Cambridge examiner assistant. You are given text extracted from a past paper called "${paperFileName}".
 
-The student wants questions about the topic: "${topic}"
+The student wants questions about ANY of these topics: ${topicLabel}
 
-Below are snippets of text from each page. Identify ONLY the pages that contain actual exam questions (not answer space, not headers) related to "${topic}".
+Below are snippets of text from each page. Identify ONLY the pages that contain actual exam questions (not answer space, not headers) related to ANY of those topics.
 
 Return a JSON object with this exact structure:
 {
@@ -478,6 +501,11 @@ export async function POST(request) {
     const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
     const cleanCode = subjectCode.replace(/[^A-Za-z0-9/]/g, '').trim();
     const cleanTopic = topic.trim();
+    // Support multiple topics: a student can type "bonding and organic chemistry"
+    // or a comma-separated list with any number of topics.
+    const topicList = parseTopics(cleanTopic);
+    if (topicList.length === 0) topicList.push(cleanTopic);
+    console.log(`[topical-extract] Parsed ${topicList.length} topic(s): ${topicList.join(' | ')}`);
 
     let targetPaperNumbers = [1, 2, 3, 4, 5, 6];
     if (paperType && paperType.trim()) {
@@ -532,20 +560,23 @@ export async function POST(request) {
       const qpPageMeta = await extractQuestionsMetadata(qpBuffer);
       if (qpPageTexts.length === 0) continue;
 
-      // Step 3: Classify which pages are about the topic
-      let qpMatches = await classifyPages(qpPageTexts, cleanTopic, qpPaper.fileName, apiKey, model);
+      // Step 3: Classify which pages are about any of the topics
+      let qpMatches = await classifyPages(qpPageTexts, topicList, qpPaper.fileName, apiKey, model);
       // Fallback: enhanced keyword search if Groq finds nothing
       if (qpMatches.length === 0) {
-        const topicLower = cleanTopic.toLowerCase();
-        const stem = topicLower.slice(0, Math.max(3, Math.floor(topicLower.length * 0.7)));
         const syns = {
           "kinematics": ["motion", "vector", "displacement"],
           "dynamics": ["force", "newton", "momentum"],
           "electricity": ["circuit", "current", "voltage", "resistance"]
         };
-        const extra = syns[topicLower] || [];
-        const searchTerms = [topicLower, stem, ...extra];
-        
+        // Build search terms from every requested topic
+        const searchTerms = [];
+        for (const t of topicList) {
+          const topicLower = t.toLowerCase();
+          const stem = topicLower.slice(0, Math.max(3, Math.floor(topicLower.length * 0.7)));
+          searchTerms.push(topicLower, stem, ...(syns[topicLower] || []));
+        }
+
         const keywordMatches = [];
         qpPageTexts.forEach((text, idx) => {
           if (!text) return;
@@ -726,9 +757,9 @@ export async function POST(request) {
           const msPrompt = `
 You are a Cambridge examiner assistant. You are given text extracted from a mark scheme called "${matchingMs.fileName}".
 
-The student wants mark scheme pages related to the topic: "${cleanTopic}"
+The student wants mark scheme pages related to ANY of these topics: ${topicList.map(t => `"${t}"`).join(', ')}
 
-Identify ONLY the pages that contain mark scheme answers related to "${cleanTopic}".
+Identify ONLY the pages that contain mark scheme answers related to ANY of those topics.
 
 Return a JSON object:
 {

@@ -393,7 +393,7 @@ export default function DashboardPage() {
               <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--text-primary)' }}>Topical Snippet Extractor</h3>
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px' }}>
-              Scans authentic past papers, finds pages about your topic using AI, and compiles them into two precise PDFs — one Question Paper, one Mark Scheme.
+              Scans authentic past papers, finds pages about your topic(s) using AI, and compiles them into two precise PDFs — one Question Paper, one Mark Scheme. Enter several topics at once using commas or "and" (e.g. "Bonding and Organic Chemistry").
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -411,11 +411,11 @@ export default function DashboardPage() {
                   />
                 </div>
                 <div>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px' }}>Topic Name:</p>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px' }}>Topic(s):</p>
                   <input
                     type="text"
                     className="search-input"
-                    placeholder="Enter a topic (e.g. Kinematics, electricity)"
+                    placeholder="Enter one or more topics (e.g. Bonding and Organic Chemistry)"
                     value={topicInput}
                     onChange={(e) => setTopicInput(e.target.value)}
                     style={{ width: '100%' }}
