@@ -590,24 +590,39 @@ export async function POST(request) {
       const qpAdded = await copyPagesToMaster(masterQP, qpBuffer, qpMatches, qpPageMeta);
       qpPagesAdded += qpAdded;
 
-      // Step 5: Find the corresponding Mark Scheme
-      // Match by year, series, paper number, and variant
-      const matchingMs = existingMsCandidates.find(ms =>
+      // Step 5: Find the corresponding Mark Scheme.
+      // Match by year, series, paper number, and variant. For Cambridge there is
+      // exactly one MS candidate per match. For Edexcel the MS filename embeds a
+      // publish date that differs from the QP (mark schemes are released months
+      // after the exam), so there are many date-guess candidates — we must try
+      // each until one actually resolves, exactly like the QP loop above.
+      const matchingMsCandidates = existingMsCandidates.filter(ms =>
           ms.year === qpPaper.year &&
           ms.term === qpPaper.term &&
           ms.paperNumber === qpPaper.paperNumber &&
           ms.variant === qpPaper.variant
         );
 
-      if (!matchingMs) {
+      if (matchingMsCandidates.length === 0) {
         console.log(`[topical-extract] No matching MS for ${qpPaper.fileName}`);
         continue;
       }
 
-      // Step 6: Fetch MS binary
-      const msBuffer = await fetchPdfBuffer(matchingMs.url);
+      // Step 6: Fetch MS binary — try each candidate URL until one resolves to a
+      // real PDF. Misses on Pearson redirect to a small HTML 404 page, which
+      // fetchPdfBuffer rejects via its content-type check, so this stays cheap.
+      let msBuffer = null;
+      let matchingMs = null;
+      for (const candidate of matchingMsCandidates) {
+        const buf = await fetchPdfBuffer(candidate.url);
+        if (buf) {
+          msBuffer = buf;
+          matchingMs = candidate;
+          break;
+        }
+      }
       if (!msBuffer) {
-        console.log(`[topical-extract] MS fetch failed for ${matchingMs.fileName} (not found or not a PDF)`);
+        console.log(`[topical-extract] MS fetch failed for ${qpPaper.fileName} after trying ${matchingMsCandidates.length} candidate(s)`);
         continue;
       }
 
