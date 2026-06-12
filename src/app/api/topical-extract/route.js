@@ -633,10 +633,20 @@ export async function POST(request) {
         });
         qpMatches = keywordMatches;
       }
+      // Question papers open with front matter — cover instructions, data and
+      // formulae sheets, the periodic table, blank pages. Topic keywords often
+      // appear there ("gravitational constant" lives on the physics data page),
+      // so the keyword fallback and even the AI can match them. Strip those
+      // pages from every match path: they are never exam questions.
+      const QP_FRONT_MATTER_RE = /READ THESE INSTRUCTIONS|\bINSTRUCTIONS\b|INFORMATION FOR (CANDIDATES|EXAMINERS)|This document (has|consists of)|BLANK PAGE|acceleration of free fall|speed of light in free space|Periodic Table|List of formulae/;
+      qpMatches = qpMatches.filter(m => !QP_FRONT_MATTER_RE.test(qpPageTexts[m.pageIndex - 1] || ''));
+
       if (qpMatches.length === 0) {
-        console.log(`[topical-extract] No "${cleanTopic}" pages in ${qpPaper.fileName}, including all pages as fallback`);
-        // Fallback: include all pages when no matches are found
-        qpMatches = qpPageTexts.map((_, idx) => ({ pageIndex: idx + 1, questionNumbers: [] }));
+        // Nothing about this topic in this paper. Skip it entirely — padding
+        // the pack with the whole paper would bury the topic in unrelated
+        // questions and answers.
+        console.log(`[topical-extract] No "${cleanTopic}" pages in ${qpPaper.fileName}, skipping paper`);
+        continue;
       }
 
       // Merge duplicate page entries and sort by page index so questions are
@@ -757,10 +767,15 @@ export async function POST(request) {
       const isFrontMatterPage = msPageTexts.map(t => FRONT_MATTER_RE.test(t || ''));
       // The answer table starts at the first page with a Question/Answer/Marks
       // (Cambridge) or Question Number/Scheme/Marks (Edexcel) header — anything
-      // before that is front matter even without a marker phrase.
-      const firstAnswerPage = msPageTexts.findIndex(t => /Question\s+(Number\s+)?(Answer|Scheme)\s+Marks/i.test(t || ''));
+      // before that is front matter even without a marker phrase. A page that
+      // carries the table header is always an answer page, even when the tail
+      // of the front matter (e.g. the abbreviations list) shares the page —
+      // otherwise the first question's answers can be lost.
+      const hasAnswerHeader = msPageTexts.map(t => /Question\s+(Number\s+)?(Answer|Scheme)\s+Marks/i.test(t || ''));
+      const firstAnswerPage = hasAnswerHeader.indexOf(true);
       const isAnswerPage = (pageIdx0) =>
-        !isFrontMatterPage[pageIdx0] && (firstAnswerPage === -1 || pageIdx0 >= firstAnswerPage);
+        hasAnswerHeader[pageIdx0] ||
+        (!isFrontMatterPage[pageIdx0] && (firstAnswerPage === -1 || pageIdx0 >= firstAnswerPage));
 
       let msMatches = [];
 
