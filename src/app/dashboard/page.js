@@ -8,6 +8,22 @@ import { useAuth } from '@/components/AuthContext'
 import { saveTopicalToFirebase, getSavedTopicals, deleteTopicalFromFirebase } from '@/lib/firebase'
 import { Trash2 } from 'lucide-react'
 
+// Safely coerce any AI-returned value into displayable text.
+// gpt-4o-mini occasionally returns a field as an array or nested object,
+// which would crash React ("Objects are not valid as a React child").
+function asText(val) {
+  if (val == null) return ''
+  if (typeof val === 'string') return val
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val)
+  if (Array.isArray(val)) return val.map(asText).filter(Boolean).join('\n')
+  if (typeof val === 'object') {
+    return Object.entries(val)
+      .map(([k, v]) => `${k}: ${asText(v)}`)
+      .join('\n')
+  }
+  return String(val)
+}
+
 export default function DashboardPage() {
   const { user, isPremium, isTrial, subscription, consumeTrialUse } = useAuth()
   const [subjectCode, setSubjectCode] = useState('')
@@ -717,7 +733,7 @@ export default function DashboardPage() {
                   <Sparkles color="#c93f17" size={24} />
                   <div>
                     <h3 style={{ fontSize: '1.6rem', margin: 0, color: 'var(--text-primary)' }}>Examiner Intelligence Report</h3>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{examinerNotes.subjectCode} · {examinerNotes.topic} · {examinerNotes.yearsAnalyzed}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{asText(examinerNotes.subjectCode)} · {asText(examinerNotes.topic)} · {asText(examinerNotes.yearsAnalyzed)}</p>
                   </div>
                 </div>
                 <button
@@ -766,27 +782,27 @@ export default function DashboardPage() {
               <div className="insights-content fade-in" key={activeNotesTab}>
                 {activeNotesTab === 'repeated' && (
                   <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {examinerNotes.mostRepeatedQuestions}
+                    {asText(examinerNotes.mostRepeatedQuestions)}
                   </div>
                 )}
                 {activeNotesTab === 'keywords' && (
                   <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {examinerNotes.scoringKeywords}
+                    {asText(examinerNotes.scoringKeywords)}
                   </div>
                 )}
                 {activeNotesTab === 'expectations' && (
                   <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {examinerNotes.examinerExpectations}
+                    {asText(examinerNotes.examinerExpectations)}
                   </div>
                 )}
                 {activeNotesTab === 'mistakes' && (
                   <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {examinerNotes.commonMistakes}
+                    {asText(examinerNotes.commonMistakes)}
                   </div>
                 )}
                 {activeNotesTab === 'tips' && (
                   <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {examinerNotes.highYieldTips}
+                    {asText(examinerNotes.highYieldTips)}
                   </div>
                 )}
               </div>
@@ -854,17 +870,17 @@ export default function DashboardPage() {
               <div className="insights-content fade-in" key={activeInsightTab}>
                 {activeInsightTab === 'repeated' && (
                   <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {insights.repeatedQuestions}
+                    {asText(insights.repeatedQuestions)}
                   </div>
                 )}
                 {activeInsightTab === 'keywords' && (
                   <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {insights.keywords}
+                    {asText(insights.keywords)}
                   </div>
                 )}
                 {activeInsightTab === 'notes' && (
                   <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {insights.notes}
+                    {asText(insights.notes)}
                   </div>
                 )}
               </div>
