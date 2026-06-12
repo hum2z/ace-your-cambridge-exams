@@ -187,9 +187,18 @@ async function extractPagesText(buffer) {
 /**
  * Extracts question bounding boxes from each page.
  * Returns an array of objects per page, containing question numbers and their Y coordinates.
+ *
+ * layout 'qp' (default): question numbers sit hard against the left margin,
+ * so accept any digit-leading text item close to the edge.
+ * layout 'ms': modern Cambridge/Edexcel mark schemes are tables whose
+ * "Question" column labels ("1", "1(a)", "12(b)(ii)") are centered in the
+ * column — they can start well past the QP margin cutoff — while the Answer
+ * column often begins with numbers ("1.6 J"). So search a wider band but only
+ * accept items that are exactly a question label.
  */
-async function extractQuestionsMetadata(buffer) {
+async function extractQuestionsMetadata(buffer, { layout = 'qp' } = {}) {
   const pagesData = [];
+  const MS_LABEL_RE = /^(\d{1,2})(\s*\([a-z0-9]{1,4}\))*$/i;
   try {
     let pageIndex = 0;
     // Plain Uint8Array for the same byteOffset reason as extractPagesText
@@ -200,21 +209,28 @@ async function extractQuestionsMetadata(buffer) {
           const rotation = pageData.pageInfo.rotate || 0;
           const view = pageData.pageInfo.view || [0, 0, 595.27, 841.89];
           const isLandscape = (rotation === 90 || rotation === 270);
-          
+
           const questionsOnPage = [];
           items.forEach(item => {
              const str = item.str;
              const x = item.transform[4];
              const y = item.transform[5];
-             
+
              const hCoord = isLandscape ? y : x;
              const vCoord = isLandscape ? x : y;
-             
-             const maxH = isLandscape ? 120 : 80;
+
+             const maxH = isLandscape ? 120 : (layout === 'ms' ? 150 : 80);
              if (hCoord < maxH) {
-                 const match = str.trim().match(/^\s*(\d+)/);
-                 if (match) {
-                     const mainQNum = parseInt(match[1]);
+                 let qLabel = null;
+                 if (layout === 'ms') {
+                     const match = str.trim().match(MS_LABEL_RE);
+                     if (match) qLabel = match[1];
+                 } else {
+                     const match = str.trim().match(/^\s*(\d+)/);
+                     if (match) qLabel = match[1];
+                 }
+                 if (qLabel) {
+                     const mainQNum = parseInt(qLabel);
                      if (mainQNum >= 1 && mainQNum <= 40) {
                          questionsOnPage.push({ number: String(mainQNum), v: vCoord });
                      }
@@ -729,7 +745,22 @@ export async function POST(request) {
       }
 
       // Step 7: Extract MS page metadata and match by QUESTION NUMBER (not page number)
-      const msPageMeta = await extractQuestionsMetadata(msBuffer);
+      const msPageMeta = await extractQuestionsMetadata(msBuffer, { layout: 'ms' });
+      const msPageTexts = await extractPagesText(msBuffer);
+
+      // Mark schemes open with several pages of front matter (cover, generic
+      // marking principles, abbreviations, notes). Those pages contain numbered
+      // lists ("1 Examiners should consider…", "2 The examiner should not…")
+      // that look exactly like question labels, so they must never take part
+      // in answer matching or they end up in the output instead of the answers.
+      const FRONT_MATTER_RE = /GENERIC MARKING PRINCIPLE|MARKING PRINCIPLES|MARK SCHEME NOTES|GENERAL MARKING GUIDANCE|ABBREVIATIONS|Maximum Mark/i;
+      const isFrontMatterPage = msPageTexts.map(t => FRONT_MATTER_RE.test(t || ''));
+      // The answer table starts at the first page with a Question/Answer/Marks
+      // (Cambridge) or Question Number/Scheme/Marks (Edexcel) header — anything
+      // before that is front matter even without a marker phrase.
+      const firstAnswerPage = msPageTexts.findIndex(t => /Question\s+(Number\s+)?(Answer|Scheme)\s+Marks/i.test(t || ''));
+      const isAnswerPage = (pageIdx0) =>
+        !isFrontMatterPage[pageIdx0] && (firstAnswerPage === -1 || pageIdx0 >= firstAnswerPage);
 
       let msMatches = [];
 
@@ -747,6 +778,7 @@ export async function POST(request) {
 
         // Scan every MS page's metadata to find pages that contain any of our target question numbers
         for (const pageMeta of msPageMeta) {
+          if (!isAnswerPage(pageMeta.pageIndex)) continue; // skip front matter
           const pageQNums = pageMeta.questions.map(q => String(q.number));
           const hasTargetQuestion = pageQNums.some(qn => targetMainQNums.has(qn));
 
@@ -772,6 +804,7 @@ export async function POST(request) {
           for (let i = 0; i < msPageMeta.length; i++) {
             const pageIdx1Based = msPageMeta[i].pageIndex + 1;
             if (matchedPageIndices.has(pageIdx1Based)) continue; // already matched
+            if (!isAnswerPage(msPageMeta[i].pageIndex)) continue; // skip front matter
 
             const pageQNums = msPageMeta[i].questions.map(q => String(q.number));
             
@@ -820,8 +853,7 @@ export async function POST(request) {
       // FALLBACK: If no question numbers were available from the QP, try OpenAI on the MS
       if (msMatches.length === 0) {
         console.log(`[topical-extract] No question numbers available for ${matchingMs.fileName}, falling back to OpenAI classification`);
-        
-        const msPageTexts = await extractPagesText(msBuffer);
+
         await new Promise(r => setTimeout(r, 500));
 
         try {
@@ -871,7 +903,8 @@ ${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('
           if (msRes.ok) {
             const msData = await msRes.json();
             const msParsed = JSON.parse(msData.choices[0].message.content);
-            msMatches = msParsed.matches || [];
+            // Drop any front-matter pages the AI picked up
+            msMatches = (msParsed.matches || []).filter(m => isAnswerPage(m.pageIndex - 1));
             console.log(`[topical-extract] OpenAI fallback found ${msMatches.length} MS pages in ${matchingMs.fileName}`);
           }
         } catch (err) {
