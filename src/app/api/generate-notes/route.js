@@ -21,7 +21,7 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
-    const yearRange = years && years.length > 0 ? years.join(', ') : '2018-2023';
+    const yearRange = years && years.length > 0 ? years.join(', ') : '2018-2026';
 
     const prompt = `You are the Chief Examiner for Cambridge Assessment International Examinations.
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Search, Cpu, Send, ChevronDown, ChevronUp, MessageSquare, Plus, X, Sparkles, Printer, Layers, BookCopy, CheckSquare, Square, FileText, Download, Calendar, Loader } from 'lucide-react'
 import { askTutor } from '@/lib/gemini'
+import { PAPER_YEARS } from '@/lib/paperService'
 import PremiumGate from '@/components/PremiumGate'
 import { useAuth } from '@/components/AuthContext'
 import { saveTopicalToFirebase, getSavedTopicals, deleteTopicalFromFirebase } from '@/lib/firebase'
@@ -30,11 +31,11 @@ export default function DashboardPage() {
   const [insights, setInsights] = useState(null)
   const [loading, setLoading] = useState(false)
   const [chatInput, setChatInput] = useState('')
-  const [compilationYear, setCompilationYear] = useState(2023)
+  const [compilationYear, setCompilationYear] = useState(PAPER_YEARS[0])
 
   // Topical Extractor state
   const [topicInput, setTopicInput] = useState('')
-  const [selectedYears, setSelectedYears] = useState([2023, 2022])
+  const [selectedYears, setSelectedYears] = useState(PAPER_YEARS.slice(0, 2))
   const [selectedVariants, setSelectedVariants] = useState([])
   const [paperType, setPaperType] = useState('')
   const [variantType, setVariantType] = useState('')
@@ -465,7 +466,7 @@ export default function DashboardPage() {
               <div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '10px' }}>Select years to scan:</p>
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  {[2023, 2022, 2021, 2020, 2019, 2018].map(y => (
+                  {PAPER_YEARS.map(y => (
                     <button
                       key={y}
                       type="button"

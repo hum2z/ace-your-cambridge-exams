@@ -120,6 +120,16 @@ export const EDEXCEL_SESSIONS = [
   },
 ];
 
+// Full year range covered by the app, newest first (2026 → 2018).
+// Not every subject has every year/session — filterExistingPapers prunes
+// combinations that don't exist at the source.
+export const LATEST_YEAR = 2026;
+export const EARLIEST_YEAR = 2018;
+export const PAPER_YEARS = Array.from(
+  { length: LATEST_YEAR - EARLIEST_YEAR + 1 },
+  (_, i) => LATEST_YEAR - i
+);
+
 // Cambridge series codes → human-readable month labels
 export const TERM_MAP = [
   { code: 'm', label: 'Feb / Mar', shortLabel: 'Feb-Mar' },
@@ -180,7 +190,7 @@ const buildEdexcelUrls = (unit, paper, dateStr, comp) => {
 
 const generateEdexcelPaperList = (subjectCode, filters = {}) => {
   const { unit, paper } = parseEdexcelCode(subjectCode);
-  const years = filters.years ?? [2024, 2023, 2022, 2021, 2020, 2019];
+  const years = filters.years ?? PAPER_YEARS;
   const sessions = filters.terms
     ? EDEXCEL_SESSIONS.filter(s => filters.terms.includes(s.code))
     : EDEXCEL_SESSIONS;
@@ -256,7 +266,7 @@ export const generatePaperList = (subjectCode, filters = {}) => {
   }
   const subjectInfo = getSubjectInfo(subjectCode);
 
-  const years        = filters.years        ?? [2023, 2022, 2021, 2020, 2019, 2018];
+  const years        = filters.years        ?? PAPER_YEARS;
   const terms        = filters.terms        ?? TERM_MAP.map(t => t.code);
   const paperNumbers = filters.paperNumbers ?? [1, 2, 3, 4, 5, 6];
   const variants     = filters.variants     ?? [1, 2, 3];

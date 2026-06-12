@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import pdfParse from 'pdf-parse/lib/pdf-parse.js';
-import { generatePaperList } from '@/lib/paperService';
+import { generatePaperList, PAPER_YEARS } from '@/lib/paperService';
 import { pdfStore } from '@/lib/pdfStore';
 
 export const maxDuration = 300;
@@ -463,7 +463,7 @@ async function copyPagesToMaster(masterDoc, pdfBuffer, matches, pagesMetadata) {
 
 export async function POST(request) {
   try {
-    const { subjectCode, topic, years = [2023, 2022], variants = [], paperType, variantType } = await request.json();
+    const { subjectCode, topic, years = PAPER_YEARS.slice(0, 2), variants = [], paperType, variantType } = await request.json();
     const selectedVariants = Array.isArray(variants) ? variants.map(v => Number(v)) : [];
     const targetYears = years;
 
