@@ -10,7 +10,7 @@ export async function POST(request) {
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
-    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+    const model = 'gpt-4o-mini';
 
     if (!apiKey) {
       return NextResponse.json({ 
@@ -33,10 +33,7 @@ export async function POST(request) {
       Do not include any text outside of the JSON object.
     `;
 
-    const modelsToTry = [
-      process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      'gpt-4o-mini'
-    ].filter((m, i, arr) => arr.indexOf(m) === i);
+    const modelsToTry = ['gpt-4o-mini'];
 
     let response;
     let data;

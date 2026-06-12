@@ -9,7 +9,7 @@ export async function POST(request) {
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
-    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+    const model = 'gpt-4o-mini';
 
     if (!apiKey) {
       return NextResponse.json({ 

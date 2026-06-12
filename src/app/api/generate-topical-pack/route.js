@@ -34,7 +34,7 @@ export async function POST(request) {
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
-    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+    const model = 'gpt-4o-mini';
     if (!apiKey) {
       return NextResponse.json({ error: 'OpenAI API key is not configured. Please add your key to .env.local.' }, { status: 400 });
     }
