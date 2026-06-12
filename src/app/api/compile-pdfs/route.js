@@ -47,18 +47,44 @@ export async function POST(request) {
     }
 
     const allPapers = generatePaperList(cleanCode);
-    
+
     // Filter for the requested year and exact component type (qp or ms)
     const targetPapers = allPapers.filter(
       p => p.year === parseInt(year) && p.component.toLowerCase().includes(type)
+    );
+    // The QP and MS books are compiled in two separate requests but must list
+    // the same papers in the same order — otherwise the nth question paper in
+    // one book doesn't correspond to the nth mark scheme in the other. So each
+    // request only includes papers whose counterpart component also exists.
+    const otherType = type === 'qp' ? 'ms' : 'qp';
+    const counterpartPapers = allPapers.filter(
+      p => p.year === parseInt(year) && p.component.toLowerCase().includes(otherType)
     );
 
     console.log(`[compile-pdfs] Targeting ${targetPapers.length} candidate ${type.toUpperCase()} papers for ${cleanCode} ${year}`);
 
     // Filter candidates by checking existence in parallel
-    const existingPapers = await filterExistingPapers(targetPapers);
+    const [existingTarget, existingCounterpart] = await Promise.all([
+      filterExistingPapers(targetPapers),
+      filterExistingPapers(counterpartPapers),
+    ]);
 
-    console.log(`[compile-pdfs] Found existing: ${existingPapers.length}/${targetPapers.length}`);
+    const paperKey = (p) => `${p.term}-${p.paperNumber}-${p.variant}`;
+    const counterpartKeys = new Set(existingCounterpart.map(paperKey));
+
+    // Keep only papers with an existing counterpart, and deduplicate — Edexcel
+    // candidates include several URL guesses for the same paper, and merging a
+    // paper twice would also shift the QP/MS books out of alignment.
+    const existingPapers = [];
+    const seenKeys = new Set();
+    for (const paper of existingTarget) {
+      const key = paperKey(paper);
+      if (seenKeys.has(key) || !counterpartKeys.has(key)) continue;
+      seenKeys.add(key);
+      existingPapers.push(paper);
+    }
+
+    console.log(`[compile-pdfs] Found existing: ${existingTarget.length}/${targetPapers.length}, with matching ${otherType.toUpperCase()}: ${existingPapers.length}`);
 
     if (existingPapers.length === 0) {
       return NextResponse.json({ error: `No ${type.toUpperCase()} papers found for ${cleanCode} in ${year}` }, { status: 404 });
