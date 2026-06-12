@@ -164,7 +164,11 @@ async function extractPagesText(buffer) {
   const pageTexts = [];
   try {
     let pageIndex = 0;
-    await pdfParse(Buffer.from(buffer), {
+    // Pass a plain Uint8Array, not a Node Buffer: pdf-parse's bundled pdf.js
+    // resolves sub-streams via bytes.buffer while ignoring byteOffset, so a
+    // pooled Buffer (byteOffset != 0) shifts every xref offset and corrupts
+    // or aborts parsing.
+    await pdfParse(new Uint8Array(buffer), {
       pagerender: (pageData) => {
         return pageData.getTextContent().then((textContent) => {
           const text = textContent.items.map(item => item.str).join(' ');
@@ -188,7 +192,8 @@ async function extractQuestionsMetadata(buffer) {
   const pagesData = [];
   try {
     let pageIndex = 0;
-    await pdfParse(Buffer.from(buffer), {
+    // Plain Uint8Array for the same byteOffset reason as extractPagesText
+    await pdfParse(new Uint8Array(buffer), {
       pagerender: (pageData) => {
         return pageData.getTextContent().then((textContent) => {
           const items = textContent.items;
@@ -342,122 +347,178 @@ function extractQuestionNumbersFromText(pageTexts, pageIndices) {
 }
 
 /**
+ * Normalizes a question label like "4a", "Q3(b)(ii)" or 7 to its main
+ * question number string ("4", "3", "7"). Returns '' when there is none.
+ */
+function mainQuestionNumber(label) {
+  const match = String(label).match(/\d+/);
+  return match ? match[0] : '';
+}
+
+/**
  * Given a list of page matches and metadata, copy those exact pages from the source PDF
  * into the master document, cropping to the specific question if possible.
+ *
+ * Question labels are compared by main number ("4a" matches the detected "4"),
+ * and each contiguous run of target questions becomes its own cropped output
+ * page, so a non-target question sitting between two targets is never dragged
+ * into the crop on one side of the QP/MS pair only.
+ *
+ * Returns { copiedCount, keptQuestionNumbers } where keptQuestionNumbers are
+ * the main question numbers actually visible in the copied output — the
+ * caller uses them as the source of truth for locating mark scheme answers.
  */
 async function copyPagesToMaster(masterDoc, pdfBuffer, matches, pagesMetadata) {
-  if (!pdfBuffer || matches.length === 0) return 0;
+  const empty = { copiedCount: 0, keptQuestionNumbers: [] };
+  if (!pdfBuffer || matches.length === 0) return empty;
   try {
     const srcDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
     const totalPages = srcDoc.getPageCount();
-    let copiedCount = 0;
-    
-    // Convert 1-based page numbers to 0-based indices, and bounds-check
-    const validMatches = matches.filter(m => {
-      const i = m.pageIndex - 1;
-      return i >= 0 && i < totalPages;
-    });
-    
-    if (validMatches.length === 0) return 0;
-    
-    const pageIndicesToCopy = validMatches.map(m => m.pageIndex - 1);
-    const copiedPages = await masterDoc.copyPages(srcDoc, pageIndicesToCopy);
-    
+    const keptQuestionNumbers = new Set();
+
+    // Each plan entry becomes one output page: a source page plus an optional crop.
+    const plan = [];
+
+    for (const match of matches) {
+      const srcIndex = match.pageIndex - 1;
+      if (srcIndex < 0 || srcIndex >= totalPages) continue;
+
+      const pageMeta = pagesMetadata[srcIndex] || {
+        questions: [],
+        isLandscape: false,
+        pageHeight: 841.89,
+        pageWidth: 595.27,
+        rotation: 0
+      };
+      const { isLandscape, pageHeight, pageWidth } = pageMeta;
+      const allQs = pageMeta.questions;
+      const targetMains = new Set(
+        (match.questionNumbers || []).map(mainQuestionNumber).filter(Boolean)
+      );
+
+      if (targetMains.size === 0 || allQs.length === 0) {
+        // Nothing to crop against — keep the whole page.
+        plan.push({ srcIndex, crop: null });
+        if (targetMains.size > 0) {
+          targetMains.forEach(q => keptQuestionNumbers.add(q));
+        } else {
+          // The whole page is visible, so every question detected on it counts.
+          allQs.forEach(q => {
+            const main = mainQuestionNumber(q.number);
+            if (main) keptQuestionNumbers.add(main);
+          });
+        }
+        continue;
+      }
+
+      // Build top-to-bottom intervals, one per question present on the page.
+      const intervals = [];
+      // Interval 0 (continuation from previous page)
+      const firstQVal = parseInt(allQs[0].number);
+      const prevQNum = (isNaN(firstQVal) || firstQVal <= 1) ? allQs[0].number : String(firstQVal - 1);
+      intervals.push({
+        qNum: prevQNum,
+        boundA: isLandscape ? 0 : pageHeight,
+        boundB: allQs[0].v
+      });
+      // Middle intervals
+      for (let i = 0; i < allQs.length - 1; i++) {
+        intervals.push({ qNum: allQs[i].number, boundA: allQs[i].v, boundB: allQs[i + 1].v });
+      }
+      // Last interval
+      intervals.push({
+        qNum: allQs[allQs.length - 1].number,
+        boundA: allQs[allQs.length - 1].v,
+        boundB: isLandscape ? pageHeight : 0
+      });
+
+      const keptFlags = intervals.map(int => targetMains.has(mainQuestionNumber(int.qNum)));
+      if (!keptFlags.some(Boolean)) {
+        // The match claims target questions are here but we couldn't locate
+        // them on the page — keep the page whole rather than dropping it.
+        plan.push({ srcIndex, crop: null });
+        targetMains.forEach(q => keptQuestionNumbers.add(q));
+        continue;
+      }
+
+      // Group contiguous kept intervals; each run becomes one cropped page.
+      const runs = [];
+      let run = null;
+      intervals.forEach((int, i) => {
+        if (keptFlags[i]) {
+          if (run) {
+            run.push(int);
+          } else {
+            run = [int];
+            runs.push(run);
+          }
+        } else {
+          run = null;
+        }
+      });
+
+      for (const group of runs) {
+        const bounds = group.flatMap(int => [int.boundA, int.boundB]);
+        group.forEach(int => {
+          const main = mainQuestionNumber(int.qNum);
+          if (main) keptQuestionNumbers.add(main);
+        });
+        plan.push({
+          srcIndex,
+          crop: {
+            isLandscape,
+            pageHeight,
+            pageWidth,
+            min: Math.min(...bounds),
+            max: Math.max(...bounds)
+          }
+        });
+      }
+    }
+
+    if (plan.length === 0) return empty;
+
+    const copiedPages = await masterDoc.copyPages(srcDoc, plan.map(p => p.srcIndex));
+
     for (let idx = 0; idx < copiedPages.length; idx++) {
       const page = copiedPages[idx];
-      const match = validMatches[idx];
-      const pageIndex0 = match.pageIndex - 1;
-      
-      const targetQuestionNums = match.questionNumbers || [];
-      const pageMeta = pagesMetadata[pageIndex0] || { 
-        questions: [], 
-        isLandscape: false, 
-        pageHeight: 841.89, 
-        pageWidth: 595.27, 
-        rotation: 0 
-      };
-      
-      const isLandscape = pageMeta.isLandscape;
-      const pageHeight = pageMeta.pageHeight;
-      const pageWidth = pageMeta.pageWidth;
-      const allQs = pageMeta.questions;
-      
-      if (targetQuestionNums.length > 0) {
-          const intervals = [];
-          if (allQs.length === 0) {
-              // No questions detected, keep whole page
-              intervals.push({
-                  qNum: targetQuestionNums[0],
-                  boundA: isLandscape ? 0 : pageHeight,
-                  boundB: isLandscape ? pageHeight : 0
-              });
-          } else {
-              // Interval 0 (continuation from previous page)
-              const firstQVal = parseInt(allQs[0].number);
-              const prevQNum = (isNaN(firstQVal) || firstQVal <= 1) ? allQs[0].number : String(firstQVal - 1);
-              intervals.push({
-                  qNum: prevQNum,
-                  boundA: isLandscape ? 0 : pageHeight,
-                  boundB: allQs[0].v
-              });
-              
-              // Middle intervals
-              for (let i = 0; i < allQs.length - 1; i++) {
-                  intervals.push({
-                      qNum: allQs[i].number,
-                      boundA: allQs[i].v,
-                      boundB: allQs[i + 1].v
-                  });
-              }
-              
-              // Last interval
-              intervals.push({
-                  qNum: allQs[allQs.length - 1].number,
-                  boundA: allQs[allQs.length - 1].v,
-                  boundB: isLandscape ? pageHeight : 0
-              });
+      const { crop } = plan[idx];
+
+      if (crop) {
+        const { isLandscape, pageHeight, pageWidth } = crop;
+        if (isLandscape) {
+          let xMin = crop.min;
+          let xMax = crop.max;
+
+          // Apply visual cropping with padding
+          if (xMin > 0) xMin = Math.max(0, xMin - 20);
+          if (xMax < pageHeight) xMax = Math.max(0, xMax - 20);
+
+          if ((xMin > 0 || xMax < pageHeight) && xMax - xMin > 30) {
+            page.setCropBox(xMin, 0, xMax - xMin, pageWidth);
           }
-          
-          const keptIntervals = intervals.filter(int => 
-              targetQuestionNums.map(String).includes(String(int.qNum))
-          );
-          
-          if (keptIntervals.length > 0) {
-              if (isLandscape) {
-                  let xMin = Math.min(...keptIntervals.flatMap(i => [i.boundA, i.boundB]));
-                  let xMax = Math.max(...keptIntervals.flatMap(i => [i.boundA, i.boundB]));
-                  
-                  // Apply visual cropping with padding
-                  if (xMin > 0) xMin = Math.max(0, xMin - 20);
-                  if (xMax < pageHeight) xMax = Math.max(0, xMax - 20);
-                  
-                  if (xMin > 0 || xMax < pageHeight) {
-                      page.setCropBox(xMin, 0, xMax - xMin, pageWidth);
-                  }
-              } else {
-                  let yMin = Math.min(...keptIntervals.flatMap(i => [i.boundA, i.boundB]));
-                  let yMax = Math.max(...keptIntervals.flatMap(i => [i.boundA, i.boundB]));
-                  
-                  // Apply visual cropping with padding
-                  if (yMax < pageHeight) yMax = Math.min(pageHeight, yMax + 20);
-                  if (yMin > 0) yMin = Math.min(pageHeight, yMin + 20);
-                  
-                  if (yMin > 0 || yMax < pageHeight) {
-                      const { width } = page.getSize();
-                      page.setCropBox(0, yMin, width, yMax - yMin);
-                  }
-              }
+        } else {
+          let yMin = crop.min;
+          let yMax = crop.max;
+
+          // Apply visual cropping with padding
+          if (yMax < pageHeight) yMax = Math.min(pageHeight, yMax + 20);
+          if (yMin > 0) yMin = Math.min(pageHeight, yMin + 20);
+
+          if ((yMin > 0 || yMax < pageHeight) && yMax - yMin > 30) {
+            const { width } = page.getSize();
+            page.setCropBox(0, yMin, width, yMax - yMin);
           }
+        }
       }
-      
+
       masterDoc.addPage(page);
-      copiedCount++;
     }
-    
-    return copiedCount;
+
+    return { copiedCount: copiedPages.length, keptQuestionNumbers: [...keptQuestionNumbers] };
   } catch (err) {
     console.error('copyPagesToMaster error:', err.message);
-    return 0;
+    return empty;
   }
 }
 
@@ -601,13 +662,21 @@ export async function POST(request) {
       console.log(`[topical-extract] Found pages [${qpPageIndices}] for "${cleanTopic}" in ${qpPaper.fileName} — questions: ${questionNumbers.join(', ')}`);
 
       // Step 4: Copy those exact visual pages (snippet) into master QP PDF
-      const qpAdded = await copyPagesToMaster(masterQP, qpBuffer, qpMatches, qpPageMeta);
-      qpPagesAdded += qpAdded;
-      if (qpAdded === 0) {
+      const qpCopy = await copyPagesToMaster(masterQP, qpBuffer, qpMatches, qpPageMeta);
+      qpPagesAdded += qpCopy.copiedCount;
+      if (qpCopy.copiedCount === 0) {
         // Nothing from this paper made it into the QP PDF, so adding its mark
         // scheme would put orphaned answers in the MS PDF and shift alignment.
         console.log(`[topical-extract] No QP pages copied from ${qpPaper.fileName}, skipping its mark scheme`);
         continue;
+      }
+
+      // The MS must answer exactly what the QP now shows. The crop step is the
+      // authority on which questions actually made it into the QP PDF, so
+      // prefer its account over the AI's original page classification.
+      if (qpCopy.keptQuestionNumbers.length > 0) {
+        questionNumbers = qpCopy.keptQuestionNumbers;
+        console.log(`[topical-extract] Questions actually kept in QP for ${qpPaper.fileName}: [${questionNumbers.join(', ')}]`);
       }
 
       // Step 5: Find the corresponding Mark Scheme.
@@ -670,7 +739,7 @@ export async function POST(request) {
       // QP always corresponds to Question 3 in the MS.
       // Normalize the target question numbers (strip sub-parts like "4a" → "4")
       const targetMainQNums = new Set(
-        questionNumbers.map(q => String(q).replace(/[^0-9]/g, '')).filter(Boolean)
+        questionNumbers.map(mainQuestionNumber).filter(Boolean)
       );
 
       if (targetMainQNums.size > 0) {
@@ -822,8 +891,10 @@ ${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('
       }
 
       // Copy actual MS PDF pages (not re-drawn text) into the master MS document
-      if (msMatches.length > 0) {
-        const msAdded = await copyPagesToMaster(masterMS, msBuffer, msMatches, msPageMeta);
+      const msAdded = msMatches.length > 0
+        ? (await copyPagesToMaster(masterMS, msBuffer, msMatches, msPageMeta)).copiedCount
+        : 0;
+      if (msAdded > 0) {
         msPagesAdded += msAdded;
         console.log(`[topical-extract] Copied ${msAdded} actual MS pages from ${matchingMs.fileName}`);
       } else {
