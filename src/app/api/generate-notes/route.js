@@ -12,12 +12,12 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing topic parameter' }, { status: 400 });
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
-    const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+    const apiKey = process.env.OPENAI_API_KEY;
+    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
     if (!apiKey) {
       return NextResponse.json({
-        error: 'Groq API key is not configured. Please add your key to .env.local.'
+        error: 'OpenAI API key is not configured. Please add your key to .env.local.'
       }, { status: 400 });
     }
 
@@ -40,10 +40,9 @@ Generate a JSON object with exactly these keys and **plain text** values (no mar
 Return ONLY the JSON object, no surrounding text or markdown fences.`;
 
     const modelsToTry = [
-      process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
-      'llama-3.1-8b-instant',
-      'mixtral-8x7b-32768'
-    ];
+      process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      'gpt-4o-mini'
+    ].filter((m, i, arr) => arr.indexOf(m) === i);
 
     let response;
     let data;
@@ -51,7 +50,7 @@ Return ONLY the JSON object, no surrounding text or markdown fences.`;
 
     for (const currentModel of modelsToTry) {
       try {
-        response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${apiKey}`,
@@ -79,7 +78,7 @@ Return ONLY the JSON object, no surrounding text or markdown fences.`;
           break; // Success, exit loop
         } else {
           const errorData = await response.json();
-          lastError = new Error(errorData.error?.message || "Groq API Error: " + response.status);
+          lastError = new Error(errorData.error?.message || "OpenAI API Error: " + response.status);
           
           // If it's a rate limit error (429), log it and try the next model
           if (response.status === 429) {

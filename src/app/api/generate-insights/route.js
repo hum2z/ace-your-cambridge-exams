@@ -9,12 +9,12 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Enter a valid subject code' }, { status: 400 });
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
-    const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+    const apiKey = process.env.OPENAI_API_KEY;
+    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
     if (!apiKey) {
       return NextResponse.json({ 
-        error: 'Groq API key is not configured. Please add your key to .env.local.' 
+        error: 'OpenAI API key is not configured. Please add your key to .env.local.' 
       }, { status: 400 });
     }
 
@@ -34,10 +34,9 @@ export async function POST(request) {
     `;
 
     const modelsToTry = [
-      process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
-      'llama-3.1-8b-instant',
-      'mixtral-8x7b-32768'
-    ];
+      process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      'gpt-4o-mini'
+    ].filter((m, i, arr) => arr.indexOf(m) === i);
 
     let response;
     let data;
@@ -45,7 +44,7 @@ export async function POST(request) {
 
     for (const currentModel of modelsToTry) {
       try {
-        response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${apiKey}`,
@@ -73,7 +72,7 @@ export async function POST(request) {
           break;
         } else {
           const errorData = await response.json();
-          lastError = new Error(errorData.error?.message || `Groq API Error: ${response.status}`);
+          lastError = new Error(errorData.error?.message || `OpenAI API Error: ${response.status}`);
           
           if (response.status === 429) {
             console.warn(`Rate limit hit for ${currentModel}. Falling back to next model...`);
@@ -99,7 +98,7 @@ export async function POST(request) {
 
     return NextResponse.json(insights);
   } catch (error) {
-    console.error('Groq Insights Error:', error);
+    console.error('OpenAI Insights Error:', error);
     return NextResponse.json({ error: `Insights Generation Failed: ${error.message}` }, { status: 500 });
   }
 }

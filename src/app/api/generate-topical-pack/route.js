@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 
 /**
- * Helper to call Groq API with given messages.
+ * Helper to call OpenAI API with given messages.
  */
-async function callGroq(apiKey, model, messages) {
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+async function callOpenAI(apiKey, model, messages) {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -20,7 +20,7 @@ async function callGroq(apiKey, model, messages) {
   if (!response.ok) {
     const errData = await response.json();
     const errMsg = errData.error?.message || '';
-    throw new Error(errMsg || `Groq API Error: ${response.status}`);
+    throw new Error(errMsg || `OpenAI API Error: ${response.status}`);
   }
   const data = await response.json();
   return JSON.parse(data.choices[0].message.content);
@@ -33,10 +33,10 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing subjectCode parameter' }, { status: 400 });
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
-    const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+    const apiKey = process.env.OPENAI_API_KEY;
+    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
     if (!apiKey) {
-      return NextResponse.json({ error: 'Groq API key is not configured. Please add your key to .env.local.' }, { status: 400 });
+      return NextResponse.json({ error: 'OpenAI API key is not configured. Please add your key to .env.local.' }, { status: 400 });
     }
 
     // Step 1: Generate questions (no markschemes yet)
@@ -56,7 +56,7 @@ Generate a JSON object with the following shape for subject code "${subjectCode}
 Only include the questions; do NOT include any markscheme fields.
 Make each question a multi‑part past‑paper style problem with proper mark allocations.
 `;
-    const questionResponse = await callGroq(apiKey, model, [
+    const questionResponse = await callOpenAI(apiKey, model, [
       { role: 'system', content: 'You are a technical API assistant that outputs strictly valid JSON objects.' },
       { role: 'user', content: questionPrompt },
     ]);
@@ -73,7 +73,7 @@ Make each question a multi‑part past‑paper style problem with proper mark al
       const msPrompt = `You are the Head Examiner for Cambridge Assessment International Examinations.
 Based on the following exam question, produce the exact examiner Mark Scheme (C1, M1, B1, A1 marks and required keywords) in markdown.
 Question Markdown:\n\n${topic.questionMarkdown}\n\nReturn ONLY the markdown string for the mark scheme.`;
-      const msResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      const msResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -91,7 +91,7 @@ Question Markdown:\n\n${topic.questionMarkdown}\n\nReturn ONLY the markdown stri
       if (!msResponse.ok) {
         const errData = await msResponse.json();
         const errMsg = errData.error?.message || '';
-        throw new Error(errMsg || `Groq Markscheme API Error: ${msResponse.status}`);
+        throw new Error(errMsg || `OpenAI Markscheme API Error: ${msResponse.status}`);
       }
       const msData = await msResponse.json();
       const markschemeMarkdown = msData.choices[0].message.content; // plain text
@@ -106,7 +106,7 @@ Question Markdown:\n\n${topic.questionMarkdown}\n\nReturn ONLY the markdown stri
     };
     return NextResponse.json(booklet);
   } catch (error) {
-    console.error('Groq Topical Booklet Error:', error);
+    console.error('OpenAI Topical Booklet Error:', error);
     return NextResponse.json({ error: `Booklet Compilation Failed: ${error.message}` }, { status: 500 });
   }
 }

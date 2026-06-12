@@ -254,7 +254,7 @@ async function extractQuestionsMetadata(buffer) {
 }
 
 /**
- * Ask Groq to identify which page indices are about the requested topic.
+ * Ask OpenAI to identify which page indices are about the requested topic.
  * Returns an array of { pageIndex, questionNumbers } objects.
  */
 async function classifyPages(pageTexts, topic, paperFileName, apiKey, model) {
@@ -286,7 +286,7 @@ PAGE TEXTS:
 ${pageSummaries}
 `;
 
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
@@ -474,8 +474,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Enter a topic name' }, { status: 400 });
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
-    const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+    const apiKey = process.env.OPENAI_API_KEY;
+    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
     const cleanCode = subjectCode.replace(/[^A-Za-z0-9/]/g, '').trim();
     const cleanTopic = topic.trim();
 
@@ -534,7 +534,7 @@ export async function POST(request) {
 
       // Step 3: Classify which pages are about the topic
       let qpMatches = await classifyPages(qpPageTexts, cleanTopic, qpPaper.fileName, apiKey, model);
-      // Fallback: enhanced keyword search if Groq finds nothing
+      // Fallback: enhanced keyword search if OpenAI finds nothing
       if (qpMatches.length === 0) {
         const topicLower = cleanTopic.toLowerCase();
         const stem = topicLower.slice(0, Math.max(3, Math.floor(topicLower.length * 0.7)));
@@ -565,9 +565,9 @@ export async function POST(request) {
       const qpPageIndices = qpMatches.map(m => m.pageIndex);
       let questionNumbers = qpMatches.flatMap(m => m.questionNumbers || []);
 
-      // If Groq didn't return question numbers (fallback paths), extract them from the QP page text
+      // If OpenAI didn't return question numbers (fallback paths), extract them from the QP page text
       if (questionNumbers.length === 0) {
-        // We didn't get question numbers from Groq. 
+        // We didn't get question numbers from OpenAI. 
         // Let's populate them from qpPageMeta for the matched pages!
         qpMatches.forEach(m => {
            const meta = qpPageMeta[m.pageIndex - 1];
@@ -700,9 +700,9 @@ export async function POST(request) {
         }
       }
 
-      // FALLBACK: If no question numbers were available from the QP, try Groq on the MS
+      // FALLBACK: If no question numbers were available from the QP, try OpenAI on the MS
       if (msMatches.length === 0) {
-        console.log(`[topical-extract] No question numbers available for ${matchingMs.fileName}, falling back to Groq classification`);
+        console.log(`[topical-extract] No question numbers available for ${matchingMs.fileName}, falling back to OpenAI classification`);
         
         const msPageTexts = await extractPagesText(msBuffer);
         await new Promise(r => setTimeout(r, 500));
@@ -728,7 +728,7 @@ PAGE TEXTS:
 ${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('\n\n---\n\n')}
 `;
 
-          const msRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          const msRes = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -746,10 +746,10 @@ ${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('
             const msData = await msRes.json();
             const msParsed = JSON.parse(msData.choices[0].message.content);
             msMatches = msParsed.matches || [];
-            console.log(`[topical-extract] Groq fallback found ${msMatches.length} MS pages in ${matchingMs.fileName}`);
+            console.log(`[topical-extract] OpenAI fallback found ${msMatches.length} MS pages in ${matchingMs.fileName}`);
           }
         } catch (err) {
-          console.warn(`[topical-extract] Groq MS classification error for ${matchingMs.fileName}:`, err.message);
+          console.warn(`[topical-extract] OpenAI MS classification error for ${matchingMs.fileName}:`, err.message);
         }
         
         // Ensure fallback MS matches have question numbers populated from metadata

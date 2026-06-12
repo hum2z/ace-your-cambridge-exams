@@ -8,12 +8,12 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing subjectCode parameter' }, { status: 400 });
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
-    const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+    const apiKey = process.env.OPENAI_API_KEY;
+    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
     if (!apiKey) {
       return NextResponse.json({ 
-        error: 'Groq API key is not configured. Please add your key to .env.local.' 
+        error: 'OpenAI API key is not configured. Please add your key to .env.local.' 
       }, { status: 400 });
     }
 
@@ -31,7 +31,7 @@ export async function POST(request) {
       Use rich formatting, bolding, and high-quality educational language.
     `;
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -55,7 +55,7 @@ export async function POST(request) {
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error?.message || `Groq API Error: ${response.status}`);
+      throw new Error(errorData.error?.message || `OpenAI API Error: ${response.status}`);
     }
 
     const data = await response.json();
@@ -63,7 +63,7 @@ export async function POST(request) {
 
     return NextResponse.json({ notes: text });
   } catch (error) {
-    console.error('Groq Topicals Generation Error:', error);
-    return NextResponse.json({ error: `Groq Generation Failed: ${error.message}` }, { status: 500 });
+    console.error('OpenAI Topicals Generation Error:', error);
+    return NextResponse.json({ error: `OpenAI Generation Failed: ${error.message}` }, { status: 500 });
   }
 }

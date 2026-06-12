@@ -90,7 +90,7 @@ export default function DashboardPage() {
       showToast(`Generated syllabus insights for ${subjectCode}!`, 'success')
     } catch (error) {
       console.error("Search Insights Error:", error)
-      showToast("Error generating insights. Check your Groq key config.", "error")
+      showToast("Error generating insights. Check your OpenAI key config.", "error")
     } finally {
       setLoading(false)
     }
@@ -797,7 +797,7 @@ export default function DashboardPage() {
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '60px' }} className="fade-in">
             <div className="spinner" style={{ border: '4px solid rgba(255,255,255,0.1)', width: '36px', height: '36px', borderRadius: '50%', borderLeftColor: 'var(--accent-primary)', animation: 'spin 1s linear infinite' }}></div>
-            <p style={{ marginTop: '15px', color: 'var(--text-secondary)' }}>Compiling syllabus insights using Llama 3.3...</p>
+            <p style={{ marginTop: '15px', color: 'var(--text-secondary)' }}>Compiling syllabus insights using GPT-4o mini...</p>
           </div>
         )}
 
