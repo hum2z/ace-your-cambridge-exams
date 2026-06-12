@@ -562,6 +562,20 @@ export async function POST(request) {
         qpMatches = qpPageTexts.map((_, idx) => ({ pageIndex: idx + 1, questionNumbers: [] }));
       }
 
+      // Merge duplicate page entries and sort by page index so questions are
+      // copied in document order — the AI's match order isn't guaranteed, and
+      // out-of-order QP pages break the QP↔MS correspondence.
+      const qpByPage = new Map();
+      for (const m of qpMatches) {
+        const existing = qpByPage.get(m.pageIndex);
+        if (existing) {
+          existing.questionNumbers = [...new Set([...existing.questionNumbers, ...(m.questionNumbers || [])])];
+        } else {
+          qpByPage.set(m.pageIndex, { pageIndex: m.pageIndex, questionNumbers: [...(m.questionNumbers || [])] });
+        }
+      }
+      qpMatches = [...qpByPage.values()].sort((a, b) => a.pageIndex - b.pageIndex);
+
       const qpPageIndices = qpMatches.map(m => m.pageIndex);
       let questionNumbers = qpMatches.flatMap(m => m.questionNumbers || []);
 
@@ -589,6 +603,12 @@ export async function POST(request) {
       // Step 4: Copy those exact visual pages (snippet) into master QP PDF
       const qpAdded = await copyPagesToMaster(masterQP, qpBuffer, qpMatches, qpPageMeta);
       qpPagesAdded += qpAdded;
+      if (qpAdded === 0) {
+        // Nothing from this paper made it into the QP PDF, so adding its mark
+        // scheme would put orphaned answers in the MS PDF and shift alignment.
+        console.log(`[topical-extract] No QP pages copied from ${qpPaper.fileName}, skipping its mark scheme`);
+        continue;
+      }
 
       // Step 5: Find the corresponding Mark Scheme.
       // Match by year, series, paper number, and variant. For Cambridge there is
@@ -603,8 +623,20 @@ export async function POST(request) {
           ms.variant === qpPaper.variant
         );
 
+      // Questions from this paper are already in the QP PDF, so the MS PDF must
+      // receive something for it too — otherwise every later answer shifts and
+      // stops lining up with its question. Insert a placeholder when missing.
+      const addMsPlaceholder = async (reason) => {
+        await addTextPageToMaster(
+          masterMS,
+          `Mark scheme unavailable: ${qpPaper.fileName.replace(/_qp_/, '_ms_')}`,
+          `${reason}\n\nThis page is a placeholder for the answers to question(s) ${questionNumbers.join(', ') || 'shown'} of ${qpPaper.fileName}, to keep questions and answers in the same order across both PDFs.`
+        );
+      };
+
       if (matchingMsCandidates.length === 0) {
         console.log(`[topical-extract] No matching MS for ${qpPaper.fileName}`);
+        await addMsPlaceholder('No matching mark scheme was found for this paper.');
         continue;
       }
 
@@ -623,6 +655,7 @@ export async function POST(request) {
       }
       if (!msBuffer) {
         console.log(`[topical-extract] MS fetch failed for ${qpPaper.fileName} after trying ${matchingMsCandidates.length} candidate(s)`);
+        await addMsPlaceholder('The mark scheme PDF could not be downloaded.');
         continue;
       }
 
@@ -635,12 +668,12 @@ export async function POST(request) {
       // This is far more reliable than page-index mirroring or AI classification,
       // because QP page 3 does NOT correspond to MS page 3 — but Question 3 in the
       // QP always corresponds to Question 3 in the MS.
-      if (questionNumbers.length > 0) {
-        // Normalize the target question numbers (strip sub-parts like "4a" → "4")
-        const targetMainQNums = new Set(
-          questionNumbers.map(q => String(q).replace(/[^0-9]/g, ''))
-        );
+      // Normalize the target question numbers (strip sub-parts like "4a" → "4")
+      const targetMainQNums = new Set(
+        questionNumbers.map(q => String(q).replace(/[^0-9]/g, '')).filter(Boolean)
+      );
 
+      if (targetMainQNums.size > 0) {
         console.log(`[topical-extract] Looking for MS pages containing questions: [${[...targetMainQNums].join(', ')}] in ${matchingMs.fileName}`);
 
         // Scan every MS page's metadata to find pages that contain any of our target question numbers
@@ -723,12 +756,21 @@ export async function POST(request) {
         await new Promise(r => setTimeout(r, 500));
 
         try {
+          // When we know which questions were extracted from the QP, ask for
+          // those exact answers — matching by topic instead would pull in
+          // answers to different questions and break QP↔MS alignment.
+          const msGoal = targetMainQNums.size > 0
+            ? `The student needs the mark scheme answers for question number(s): ${[...targetMainQNums].join(', ')}.
+
+Identify ONLY the pages that contain the answers to those exact question numbers.`
+            : `The student wants mark scheme pages related to the topic: "${cleanTopic}"
+
+Identify ONLY the pages that contain mark scheme answers related to "${cleanTopic}".`;
+
           const msPrompt = `
 You are a Cambridge examiner assistant. You are given text extracted from a mark scheme called "${matchingMs.fileName}".
 
-The student wants mark scheme pages related to the topic: "${cleanTopic}"
-
-Identify ONLY the pages that contain mark scheme answers related to "${cleanTopic}".
+${msGoal}
 
 Return a JSON object:
 {
@@ -776,6 +818,7 @@ ${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('
             }
           }
         });
+        msMatches.sort((a, b) => a.pageIndex - b.pageIndex);
       }
 
       // Copy actual MS PDF pages (not re-drawn text) into the master MS document
@@ -785,6 +828,7 @@ ${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('
         console.log(`[topical-extract] Copied ${msAdded} actual MS pages from ${matchingMs.fileName}`);
       } else {
         console.log(`[topical-extract] No MS pages found for ${matchingMs.fileName} after all strategies`);
+        await addMsPlaceholder('The matching answer pages could not be located inside the mark scheme.');
       }
     }
 
