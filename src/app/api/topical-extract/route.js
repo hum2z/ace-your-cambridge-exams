@@ -226,7 +226,11 @@ async function extractQuestionsMetadata(buffer, { layout = 'qp' } = {}) {
                      const match = str.trim().match(MS_LABEL_RE);
                      if (match) qLabel = match[1];
                  } else {
-                     const match = str.trim().match(/^\s*(\d+)/);
+                     // A question start is a standalone number item ("1", "12",
+                     // "3(a)…") — the bold number is its own text run in real
+                     // papers. A number followed by words ("2 kg") is data
+                     // inside a question, not a question start.
+                     const match = str.trim().match(/^(\d{1,2})\s*(\(.*)?$/);
                      if (match) qLabel = match[1];
                  }
                  if (qLabel) {
@@ -372,170 +376,73 @@ function mainQuestionNumber(label) {
 }
 
 /**
- * Given a list of page matches and metadata, copy those exact pages from the source PDF
- * into the master document, cropping to the specific question if possible.
+ * Splits a paper into whole-question page ranges using the detected question
+ * start positions. Returns a Map of main question number → { startPage,
+ * endPage } (0-based, inclusive). A question runs from the page where its
+ * number first appears to the page where the next question begins — sharing
+ * that boundary page unless the next question starts at the very top of it.
  *
- * Question labels are compared by main number ("4a" matches the detected "4"),
- * and each contiguous run of target questions becomes its own cropped output
- * page, so a non-target question sitting between two targets is never dragged
- * into the crop on one side of the QP/MS pair only.
- *
- * Returns { copiedCount, keptQuestionNumbers } where keptQuestionNumbers are
- * the main question numbers actually visible in the copied output — the
- * caller uses them as the source of truth for locating mark scheme answers.
+ * Question numbers must be strictly increasing through the document, which
+ * drops false positives (a "2 kg" data value detected inside question 3
+ * cannot start a new segment).
  */
-async function copyPagesToMaster(masterDoc, pdfBuffer, matches, pagesMetadata) {
-  const empty = { copiedCount: 0, keptQuestionNumbers: [] };
-  if (!pdfBuffer || matches.length === 0) return empty;
-  try {
-    const srcDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
-    const totalPages = srcDoc.getPageCount();
-    const keptQuestionNumbers = new Set();
-
-    // Each plan entry becomes one output page: a source page plus an optional crop.
-    const plan = [];
-
-    for (const match of matches) {
-      const srcIndex = match.pageIndex - 1;
-      if (srcIndex < 0 || srcIndex >= totalPages) continue;
-
-      const pageMeta = pagesMetadata[srcIndex] || {
-        questions: [],
-        isLandscape: false,
-        pageHeight: 841.89,
-        pageWidth: 595.27,
-        rotation: 0
-      };
-      const { isLandscape, pageHeight, pageWidth } = pageMeta;
-      const allQs = pageMeta.questions;
-      const targetMains = new Set(
-        (match.questionNumbers || []).map(mainQuestionNumber).filter(Boolean)
-      );
-
-      if (targetMains.size === 0 || allQs.length === 0) {
-        // Nothing to crop against — keep the whole page.
-        plan.push({ srcIndex, crop: null });
-        if (targetMains.size > 0) {
-          targetMains.forEach(q => keptQuestionNumbers.add(q));
-        } else {
-          // The whole page is visible, so every question detected on it counts.
-          allQs.forEach(q => {
-            const main = mainQuestionNumber(q.number);
-            if (main) keptQuestionNumbers.add(main);
-          });
-        }
-        continue;
-      }
-
-      // Build top-to-bottom intervals, one per question present on the page.
-      const intervals = [];
-      // Interval 0 (continuation from previous page)
-      const firstQVal = parseInt(allQs[0].number);
-      const prevQNum = (isNaN(firstQVal) || firstQVal <= 1) ? allQs[0].number : String(firstQVal - 1);
-      intervals.push({
-        qNum: prevQNum,
-        boundA: isLandscape ? 0 : pageHeight,
-        boundB: allQs[0].v
-      });
-      // Middle intervals
-      for (let i = 0; i < allQs.length - 1; i++) {
-        intervals.push({ qNum: allQs[i].number, boundA: allQs[i].v, boundB: allQs[i + 1].v });
-      }
-      // Last interval
-      intervals.push({
-        qNum: allQs[allQs.length - 1].number,
-        boundA: allQs[allQs.length - 1].v,
-        boundB: isLandscape ? pageHeight : 0
-      });
-
-      const keptFlags = intervals.map(int => targetMains.has(mainQuestionNumber(int.qNum)));
-      if (!keptFlags.some(Boolean)) {
-        // The match claims target questions are here but we couldn't locate
-        // them on the page — keep the page whole rather than dropping it.
-        plan.push({ srcIndex, crop: null });
-        targetMains.forEach(q => keptQuestionNumbers.add(q));
-        continue;
-      }
-
-      // Group contiguous kept intervals; each run becomes one cropped page.
-      const runs = [];
-      let run = null;
-      intervals.forEach((int, i) => {
-        if (keptFlags[i]) {
-          if (run) {
-            run.push(int);
-          } else {
-            run = [int];
-            runs.push(run);
-          }
-        } else {
-          run = null;
-        }
-      });
-
-      for (const group of runs) {
-        const bounds = group.flatMap(int => [int.boundA, int.boundB]);
-        group.forEach(int => {
-          const main = mainQuestionNumber(int.qNum);
-          if (main) keptQuestionNumbers.add(main);
-        });
-        plan.push({
-          srcIndex,
-          crop: {
-            isLandscape,
-            pageHeight,
-            pageWidth,
-            min: Math.min(...bounds),
-            max: Math.max(...bounds)
-          }
-        });
-      }
+function segmentQuestions(pagesMeta, isEligiblePage = () => true, topBandPt = 110) {
+  const starts = [];
+  let lastEligiblePage = -1;
+  let lastNum = 0;
+  for (const meta of pagesMeta) {
+    if (!isEligiblePage(meta.pageIndex)) continue;
+    lastEligiblePage = meta.pageIndex;
+    for (const q of meta.questions) {
+      const main = mainQuestionNumber(q.number);
+      const n = parseInt(main);
+      if (!main || isNaN(n) || n <= lastNum) continue;
+      lastNum = n;
+      starts.push({ qNum: main, pageIndex: meta.pageIndex, v: q.v, meta });
     }
-
-    if (plan.length === 0) return empty;
-
-    const copiedPages = await masterDoc.copyPages(srcDoc, plan.map(p => p.srcIndex));
-
-    for (let idx = 0; idx < copiedPages.length; idx++) {
-      const page = copiedPages[idx];
-      const { crop } = plan[idx];
-
-      if (crop) {
-        const { isLandscape, pageHeight, pageWidth } = crop;
-        if (isLandscape) {
-          let xMin = crop.min;
-          let xMax = crop.max;
-
-          // Apply visual cropping with padding
-          if (xMin > 0) xMin = Math.max(0, xMin - 20);
-          if (xMax < pageHeight) xMax = Math.max(0, xMax - 20);
-
-          if ((xMin > 0 || xMax < pageHeight) && xMax - xMin > 30) {
-            page.setCropBox(xMin, 0, xMax - xMin, pageWidth);
-          }
-        } else {
-          let yMin = crop.min;
-          let yMax = crop.max;
-
-          // Apply visual cropping with padding
-          if (yMax < pageHeight) yMax = Math.min(pageHeight, yMax + 20);
-          if (yMin > 0) yMin = Math.min(pageHeight, yMin + 20);
-
-          if ((yMin > 0 || yMax < pageHeight) && yMax - yMin > 30) {
-            const { width } = page.getSize();
-            page.setCropBox(0, yMin, width, yMax - yMin);
-          }
-        }
-      }
-
-      masterDoc.addPage(page);
-    }
-
-    return { copiedCount: copiedPages.length, keptQuestionNumbers: [...keptQuestionNumbers] };
-  } catch (err) {
-    console.error('copyPagesToMaster error:', err.message);
-    return empty;
   }
+
+  const segments = new Map();
+  for (let i = 0; i < starts.length; i++) {
+    const cur = starts[i];
+    const next = starts[i + 1];
+    let endPage;
+    if (!next) {
+      endPage = lastEligiblePage;
+    } else if (next.pageIndex > cur.pageIndex) {
+      // If the next question starts within the top band of its page, the
+      // current question ended on the page before; otherwise the page is
+      // shared. Mark scheme tables repeat a header row, so their callers
+      // pass a deeper band.
+      const nextStartsAtTop = next.meta.isLandscape
+        ? next.v <= topBandPt
+        : next.v >= next.meta.pageHeight - topBandPt;
+      endPage = nextStartsAtTop ? next.pageIndex - 1 : next.pageIndex;
+    } else {
+      endPage = cur.pageIndex;
+    }
+    segments.set(cur.qNum, { startPage: cur.pageIndex, endPage: Math.max(endPage, cur.pageIndex) });
+  }
+  return segments;
+}
+
+/**
+ * Copies a 0-based inclusive page range from srcDoc into masterDoc, skipping
+ * pages already contributed by this paper (adjacent questions can share a
+ * boundary page). Returns the number of pages added.
+ */
+async function copyPageRange(masterDoc, srcDoc, startPage, endPage, alreadyCopied) {
+  const total = srcDoc.getPageCount();
+  const indices = [];
+  for (let i = Math.max(0, startPage); i <= endPage && i < total; i++) {
+    if (alreadyCopied.has(i)) continue;
+    alreadyCopied.add(i);
+    indices.push(i);
+  }
+  if (indices.length === 0) return 0;
+  const pages = await masterDoc.copyPages(srcDoc, indices);
+  pages.forEach((p) => masterDoc.addPage(p));
+  return pages.length;
 }
 
 export async function POST(request) {
@@ -687,23 +594,20 @@ export async function POST(request) {
       }
       console.log(`[topical-extract] Found pages [${qpPageIndices}] for "${cleanTopic}" in ${qpPaper.fileName} — questions: ${questionNumbers.join(', ')}`);
 
-      // Step 4: Copy those exact visual pages (snippet) into master QP PDF
-      const qpCopy = await copyPagesToMaster(masterQP, qpBuffer, qpMatches, qpPageMeta);
-      qpPagesAdded += qpCopy.copiedCount;
-      if (qpCopy.copiedCount === 0) {
-        // Nothing from this paper made it into the QP PDF, so adding its mark
-        // scheme would put orphaned answers in the MS PDF and shift alignment.
-        console.log(`[topical-extract] No QP pages copied from ${qpPaper.fileName}, skipping its mark scheme`);
+      // Step 4: Split the question paper into whole-question page ranges.
+      // The ranges — from where each question number first appears to where
+      // the next begins — are the single source of truth for BOTH output
+      // documents, so questions and answers cannot drift apart.
+      const qpSegments = segmentQuestions(qpPageMeta, (i) => !QP_FRONT_MATTER_RE.test(qpPageTexts[i] || ''));
+      const targetQs = [...new Set(questionNumbers.map(mainQuestionNumber).filter(Boolean))]
+        .filter(q => qpSegments.has(q))
+        .sort((a, b) => parseInt(a) - parseInt(b));
+
+      if (targetQs.length === 0) {
+        console.log(`[topical-extract] Could not locate question starts for [${questionNumbers.join(', ')}] in ${qpPaper.fileName}, skipping paper`);
         continue;
       }
-
-      // The MS must answer exactly what the QP now shows. The crop step is the
-      // authority on which questions actually made it into the QP PDF, so
-      // prefer its account over the AI's original page classification.
-      if (qpCopy.keptQuestionNumbers.length > 0) {
-        questionNumbers = qpCopy.keptQuestionNumbers;
-        console.log(`[topical-extract] Questions actually kept in QP for ${qpPaper.fileName}: [${questionNumbers.join(', ')}]`);
-      }
+      console.log(`[topical-extract] Target questions for ${qpPaper.fileName}: [${targetQs.join(', ')}]`);
 
       // Step 5: Find the corresponding Mark Scheme.
       // Match by year, series, paper number, and variant. For Cambridge there is
@@ -718,26 +622,11 @@ export async function POST(request) {
           ms.variant === qpPaper.variant
         );
 
-      // Questions from this paper are already in the QP PDF, so the MS PDF must
-      // receive something for it too — otherwise every later answer shifts and
-      // stops lining up with its question. Insert a placeholder when missing.
-      const addMsPlaceholder = async (reason) => {
-        await addTextPageToMaster(
-          masterMS,
-          `Mark scheme unavailable: ${qpPaper.fileName.replace(/_qp_/, '_ms_')}`,
-          `${reason}\n\nThis page is a placeholder for the answers to question(s) ${questionNumbers.join(', ') || 'shown'} of ${qpPaper.fileName}, to keep questions and answers in the same order across both PDFs.`
-        );
-      };
-
-      if (matchingMsCandidates.length === 0) {
-        console.log(`[topical-extract] No matching MS for ${qpPaper.fileName}`);
-        await addMsPlaceholder('No matching mark scheme was found for this paper.');
-        continue;
-      }
-
       // Step 6: Fetch MS binary — try each candidate URL until one resolves to a
       // real PDF. Misses on Pearson redirect to a small HTML 404 page, which
       // fetchPdfBuffer rejects via its content-type check, so this stays cheap.
+      // A missing mark scheme no longer skips the paper: the lockstep emitter
+      // below inserts labeled placeholders instead so nothing shifts.
       let msBuffer = null;
       let matchingMs = null;
       for (const candidate of matchingMsCandidates) {
@@ -749,206 +638,105 @@ export async function POST(request) {
         }
       }
       if (!msBuffer) {
-        console.log(`[topical-extract] MS fetch failed for ${qpPaper.fileName} after trying ${matchingMsCandidates.length} candidate(s)`);
-        await addMsPlaceholder('The mark scheme PDF could not be downloaded.');
-        continue;
+        console.log(`[topical-extract] No mark scheme PDF for ${qpPaper.fileName} (${matchingMsCandidates.length} candidate(s) tried)`);
       }
 
-      // Step 7: Extract MS page metadata and match by QUESTION NUMBER (not page number)
-      const msPageMeta = await extractQuestionsMetadata(msBuffer, { layout: 'ms' });
-      const msPageTexts = await extractPagesText(msBuffer);
+      // Step 7: Segment the mark scheme by question with the SAME routine used
+      // for the question paper, after dropping its front matter.
+      let msSegments = new Map();
+      let msSrcDoc = null;
+      let msEligiblePages = [];
+      if (msBuffer) {
+        const msPageMeta = await extractQuestionsMetadata(msBuffer, { layout: 'ms' });
+        const msPageTexts = await extractPagesText(msBuffer);
 
-      // Mark schemes open with several pages of front matter (cover, generic
-      // marking principles, abbreviations, notes). Those pages contain numbered
-      // lists ("1 Examiners should consider…", "2 The examiner should not…")
-      // that look exactly like question labels, so they must never take part
-      // in answer matching or they end up in the output instead of the answers.
-      const FRONT_MATTER_RE = /GENERIC MARKING PRINCIPLE|MARKING PRINCIPLES|MARK SCHEME NOTES|GENERAL MARKING GUIDANCE|ABBREVIATIONS|Maximum Mark/i;
-      const isFrontMatterPage = msPageTexts.map(t => FRONT_MATTER_RE.test(t || ''));
-      // The answer table starts at the first page with a Question/Answer/Marks
-      // (Cambridge) or Question Number/Scheme/Marks (Edexcel) header — anything
-      // before that is front matter even without a marker phrase. A page that
-      // carries the table header is always an answer page, even when the tail
-      // of the front matter (e.g. the abbreviations list) shares the page —
-      // otherwise the first question's answers can be lost.
-      const hasAnswerHeader = msPageTexts.map(t => /Question\s+(Number\s+)?(Answer|Scheme)\s+Marks/i.test(t || ''));
-      const firstAnswerPage = hasAnswerHeader.indexOf(true);
-      const isAnswerPage = (pageIdx0) =>
-        hasAnswerHeader[pageIdx0] ||
-        (!isFrontMatterPage[pageIdx0] && (firstAnswerPage === -1 || pageIdx0 >= firstAnswerPage));
+        // Mark schemes open with several pages of front matter (cover, generic
+        // marking principles, abbreviations, notes). Those pages contain
+        // numbered lists ("1 Examiners should consider…") that look exactly
+        // like question labels, so they must never take part in segmentation.
+        const FRONT_MATTER_RE = /GENERIC MARKING PRINCIPLE|MARKING PRINCIPLES|MARK SCHEME NOTES|GENERAL MARKING GUIDANCE|ABBREVIATIONS|Maximum Mark/i;
+        const isFrontMatterPage = msPageTexts.map(t => FRONT_MATTER_RE.test(t || ''));
+        // The answer table starts at the first page with a Question/Answer/Marks
+        // (Cambridge) or Question Number/Scheme/Marks (Edexcel) header. A page
+        // carrying that header is always an answer page, even when the tail of
+        // the front matter (e.g. the abbreviations list) shares the page —
+        // otherwise question 1's answers would be lost.
+        const hasAnswerHeader = msPageTexts.map(t => /Question\s+(Number\s+)?(Answer|Scheme)\s+Marks/i.test(t || ''));
+        const firstAnswerPage = hasAnswerHeader.indexOf(true);
+        const isAnswerPage = (pageIdx0) =>
+          hasAnswerHeader[pageIdx0] ||
+          (!isFrontMatterPage[pageIdx0] && (firstAnswerPage === -1 || pageIdx0 >= firstAnswerPage));
 
-      let msMatches = [];
-
-      // PRIMARY STRATEGY: Match MS pages by question number
-      // This is far more reliable than page-index mirroring or AI classification,
-      // because QP page 3 does NOT correspond to MS page 3 — but Question 3 in the
-      // QP always corresponds to Question 3 in the MS.
-      // Normalize the target question numbers (strip sub-parts like "4a" → "4")
-      const targetMainQNums = new Set(
-        questionNumbers.map(mainQuestionNumber).filter(Boolean)
-      );
-
-      if (targetMainQNums.size > 0) {
-        console.log(`[topical-extract] Looking for MS pages containing questions: [${[...targetMainQNums].join(', ')}] in ${matchingMs.fileName}`);
-
-        // Scan every MS page's metadata to find pages that contain any of our target question numbers
-        for (const pageMeta of msPageMeta) {
-          if (!isAnswerPage(pageMeta.pageIndex)) continue; // skip front matter
-          const pageQNums = pageMeta.questions.map(q => String(q.number));
-          const hasTargetQuestion = pageQNums.some(qn => targetMainQNums.has(qn));
-
-          if (hasTargetQuestion) {
-            // Only include the question numbers we actually care about on this page
-            const matchedQNums = pageQNums.filter(qn => targetMainQNums.has(qn));
-            msMatches.push({
-              pageIndex: pageMeta.pageIndex + 1, // convert 0-based to 1-based
-              questionNumbers: matchedQNums
-            });
-          }
-        }
-
-        // Also check for questions that span across pages (continuation pages).
-        // If question N starts on page X and continues onto page X+1, page X+1 might
-        // not have question N's number at the top. We detect this by checking if there's
-        // a gap: if we found Q3 on page 5 and Q4 on page 7, page 6 is likely a
-        // continuation of Q3.
-        if (msMatches.length > 0 && msPageMeta.length > 0) {
-          const matchedPageIndices = new Set(msMatches.map(m => m.pageIndex));
-          const continuationPages = [];
-
-          for (let i = 0; i < msPageMeta.length; i++) {
-            const pageIdx1Based = msPageMeta[i].pageIndex + 1;
-            if (matchedPageIndices.has(pageIdx1Based)) continue; // already matched
-            if (!isAnswerPage(msPageMeta[i].pageIndex)) continue; // skip front matter
-
-            const pageQNums = msPageMeta[i].questions.map(q => String(q.number));
-            
-            // A continuation page typically has no new question number, or only has
-            // question numbers that are continuations of target questions.
-            // Check if the previous page is matched and the next question hasn't started yet.
-            if (matchedPageIndices.has(pageIdx1Based - 1)) {
-              // Find what the "current" question is from the previous matched page
-              const prevMatch = msMatches.find(m => m.pageIndex === pageIdx1Based - 1);
-              if (prevMatch) {
-                const lastQOnPrevPage = prevMatch.questionNumbers[prevMatch.questionNumbers.length - 1];
-                
-                // This page is a continuation if it has no questions, or its questions
-                // are still within our target set
-                if (pageQNums.length === 0) {
-                  continuationPages.push({
-                    pageIndex: pageIdx1Based,
-                    questionNumbers: [lastQOnPrevPage]
-                  });
-                } else {
-                  // Check if the first question on this page is still one of our targets
-                  // or if it's the same question continuing
-                  const firstQOnThisPage = pageQNums[0];
-                  if (targetMainQNums.has(firstQOnThisPage) && !matchedPageIndices.has(pageIdx1Based)) {
-                    // Already would be caught, but just in case
-                    continuationPages.push({
-                      pageIndex: pageIdx1Based,
-                      questionNumbers: pageQNums.filter(qn => targetMainQNums.has(qn))
-                    });
-                  }
-                }
-              }
-            }
-          }
-
-          msMatches.push(...continuationPages);
-          // Sort by page index for proper ordering
-          msMatches.sort((a, b) => a.pageIndex - b.pageIndex);
-        }
-
-        if (msMatches.length > 0) {
-          console.log(`[topical-extract] Question-number matching found ${msMatches.length} MS pages in ${matchingMs.fileName}: pages [${msMatches.map(m => m.pageIndex).join(', ')}]`);
-        }
-      }
-
-      // FALLBACK: If no question numbers were available from the QP, try OpenAI on the MS
-      if (msMatches.length === 0) {
-        console.log(`[topical-extract] No question numbers available for ${matchingMs.fileName}, falling back to OpenAI classification`);
-
-        await new Promise(r => setTimeout(r, 500));
-
+        msSegments = segmentQuestions(msPageMeta, isAnswerPage, 160);
+        msEligiblePages = msPageMeta.filter(m => isAnswerPage(m.pageIndex)).map(m => m.pageIndex);
         try {
-          // When we know which questions were extracted from the QP, ask for
-          // those exact answers — matching by topic instead would pull in
-          // answers to different questions and break QP↔MS alignment.
-          const msGoal = targetMainQNums.size > 0
-            ? `The student needs the mark scheme answers for question number(s): ${[...targetMainQNums].join(', ')}.
-
-Identify ONLY the pages that contain the answers to those exact question numbers.`
-            : `The student wants mark scheme pages related to the topic: "${cleanTopic}"
-
-Identify ONLY the pages that contain mark scheme answers related to "${cleanTopic}".`;
-
-          const msPrompt = `
-You are a Cambridge examiner assistant. You are given text extracted from a mark scheme called "${matchingMs.fileName}".
-
-${msGoal}
-
-Return a JSON object:
-{
-  "matches": [
-    { "pageIndex": 5, "questionNumbers": ["3"] }
-  ]
-}
-
-If nothing matches, return: { "matches": [] }
-
-PAGE TEXTS:
-${msPageTexts.map((t, i) => `PAGE ${i + 1}: ${(t || '').slice(0, 4000)}`).join('\n\n---\n\n')}
-`;
-
-          const msRes = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model,
-              messages: [
-                { role: 'system', content: 'You are a JSON-only API assistant. Output ONLY valid JSON.' },
-                { role: 'user', content: msPrompt }
-              ],
-              response_format: { type: 'json_object' },
-              temperature: 0.1,
-            }),
-          });
-
-          if (msRes.ok) {
-            const msData = await msRes.json();
-            const msParsed = JSON.parse(msData.choices[0].message.content);
-            // Drop any front-matter pages the AI picked up
-            msMatches = (msParsed.matches || []).filter(m => isAnswerPage(m.pageIndex - 1));
-            console.log(`[topical-extract] OpenAI fallback found ${msMatches.length} MS pages in ${matchingMs.fileName}`);
-          }
+          msSrcDoc = await PDFDocument.load(msBuffer, { ignoreEncryption: true });
         } catch (err) {
-          console.warn(`[topical-extract] OpenAI MS classification error for ${matchingMs.fileName}:`, err.message);
+          console.warn(`[topical-extract] Could not load MS PDF ${matchingMs.fileName}:`, err.message);
+          msSrcDoc = null;
         }
-        
-        // Ensure fallback MS matches have question numbers populated from metadata
-        msMatches.forEach(m => {
-          if (!m.questionNumbers || m.questionNumbers.length === 0) {
-            const meta = msPageMeta[m.pageIndex - 1];
-            if (meta && meta.questions.length > 0) {
-              m.questionNumbers = meta.questions.map(q => q.number);
-            }
-          }
-        });
-        msMatches.sort((a, b) => a.pageIndex - b.pageIndex);
+        console.log(`[topical-extract] MS ${matchingMs.fileName}: segmented questions [${[...msSegments.keys()].join(', ')}]`);
       }
 
-      // Copy actual MS PDF pages (not re-drawn text) into the master MS document
-      const msAdded = msMatches.length > 0
-        ? (await copyPagesToMaster(masterMS, msBuffer, msMatches, msPageMeta)).copiedCount
-        : 0;
-      if (msAdded > 0) {
-        msPagesAdded += msAdded;
-        console.log(`[topical-extract] Copied ${msAdded} actual MS pages from ${matchingMs.fileName}`);
-      } else {
-        console.log(`[topical-extract] No MS pages found for ${matchingMs.fileName} after all strategies`);
-        await addMsPlaceholder('The matching answer pages could not be located inside the mark scheme.');
+      // Step 8: Emit both documents question by question, in lockstep. Every
+      // section starts with a labeled divider page, so it is always obvious
+      // which answer belongs to which question — even when a page could not
+      // be found and a placeholder stands in.
+      const qpSrcDoc = await PDFDocument.load(qpBuffer, { ignoreEncryption: true });
+      const qpCopied = new Set();
+      const msCopied = new Set();
+      const paperLabel = `${qpPaper.year} ${qpPaper.termLabel} — Paper ${qpPaper.paperNumber} Variant ${qpPaper.variant}`;
+      const msName = matchingMs ? matchingMs.fileName : qpPaper.fileName.replace(/_qp_/, '_ms_');
+
+      // How to serve answers for this paper:
+      //  'per-question' — answers located per question (structured papers)
+      //  'whole'        — scheme exists but can't be split (e.g. MCQ answer
+      //                   grids); include it once, clearly labeled
+      //  'missing'      — no usable scheme; placeholders keep the lockstep
+      const msMode = msSrcDoc ? (msSegments.size > 0 ? 'per-question' : 'whole') : 'missing';
+
+      if (msMode === 'whole') {
+        await addTextPageToMaster(
+          masterMS,
+          `Answers — ${msName}`,
+          `${paperLabel}\n\nThis mark scheme could not be split into individual questions (it is likely an answer grid). The complete answer section follows; it covers question(s) ${targetQs.join(', ')}.`
+        );
+        const pagesToCopy = msEligiblePages.length
+          ? msEligiblePages
+          : Array.from({ length: msSrcDoc.getPageCount() }, (_, i) => i);
+        for (const idx of pagesToCopy) {
+          msPagesAdded += await copyPageRange(masterMS, msSrcDoc, idx, idx, msCopied);
+        }
+      } else if (msMode === 'missing') {
+        await addTextPageToMaster(
+          masterMS,
+          `Mark scheme unavailable: ${msName}`,
+          `${paperLabel}\n\nThe mark scheme PDF could not be found or downloaded. This placeholder stands in for the answers to question(s) ${targetQs.join(', ')} so questions and answers stay in the same order across both PDFs.`
+        );
       }
+
+      for (const q of targetQs) {
+        const seg = qpSegments.get(q);
+        await addTextPageToMaster(masterQP, `Question ${q}`, `${qpPaper.fileName}\n${paperLabel}`);
+        qpPagesAdded += await copyPageRange(masterQP, qpSrcDoc, seg.startPage, seg.endPage, qpCopied);
+
+        if (msMode !== 'per-question') continue;
+
+        const msSeg = msSegments.get(q);
+        if (msSeg) {
+          await addTextPageToMaster(masterMS, `Answer ${q}`, `${msName}\n${paperLabel}`);
+          // Adds 0 pages only when this answer shares its page(s) with the
+          // previous question's answers, which then sit directly above.
+          msPagesAdded += await copyPageRange(masterMS, msSrcDoc, msSeg.startPage, msSeg.endPage, msCopied);
+        } else {
+          await addTextPageToMaster(
+            masterMS,
+            `Answer ${q} — not located`,
+            `${msName}\n${paperLabel}\n\nThe answers to question ${q} could not be located in this mark scheme. This placeholder keeps questions and answers in the same order.`
+          );
+        }
+      }
+      console.log(`[topical-extract] Emitted questions [${targetQs.join(', ')}] from ${qpPaper.fileName} (MS mode: ${msMode})`);
     }
 
     if (qpPagesAdded === 0) {
