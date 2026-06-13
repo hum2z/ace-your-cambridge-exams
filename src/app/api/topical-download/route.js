@@ -16,27 +16,37 @@ export async function GET(request) {
       return NextResponse.json({ error: 'PDF not found or expired' }, { status: 404 });
     }
 
-    let pdfBytes;
+    let bytes;
     if (type === 'qp') {
-      pdfBytes = entry.qp;
+      bytes = entry.qp;
     } else if (type === 'ms') {
-      pdfBytes = entry.ms;
+      bytes = entry.ms;
     } else if (type === 'sg') {
-      pdfBytes = entry.sg;
+      bytes = entry.sg;
     } else {
       return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });
     }
 
-    if (!pdfBytes) {
-      return NextResponse.json({ error: `${type.toUpperCase()} PDF not available` }, { status: 404 });
+    if (!bytes) {
+      return NextResponse.json({ error: `${type.toUpperCase()} file not available` }, { status: 404 });
     }
 
-    const filename = `${requestId}_${type}.pdf`;
-    return new NextResponse(pdfBytes, {
+    // The solution guide is a self-contained HTML page meant to open in the
+    // browser; QP/MS are PDFs offered as downloads.
+    if (type === 'sg') {
+      return new NextResponse(bytes, {
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Content-Disposition': 'inline',
+          'Cache-Control': 'no-store',
+        },
+      });
+    }
+
+    return new NextResponse(bytes, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        // Prevent caching of temporary files
+        'Content-Disposition': `attachment; filename="${requestId}_${type}.pdf"`,
         'Cache-Control': 'no-store',
       },
     });

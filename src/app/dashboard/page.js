@@ -354,8 +354,7 @@ export default function DashboardPage() {
         qpName: `${cleanCode}_${cleanTopic.replace(/\s+/g, '_')}_Questions.pdf`,
         msUrl: data.msUrl,
         msName: data.msUrl ? `${cleanCode}_${cleanTopic.replace(/\s+/g, '_')}_MarkScheme.pdf` : null,
-        sgUrl: data.sgUrl,
-        sgName: data.sgUrl ? `${cleanCode}_${cleanTopic.replace(/\s+/g, '_')}_SolutionGuide.pdf` : null
+        sgUrl: data.sgUrl
       };
       setExtractedFiles(fileResult);
 
@@ -516,7 +515,7 @@ export default function DashboardPage() {
                     <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Also generate a Solution Guide</span>
                     <span style={{ background: 'rgba(239,90,43,0.18)', color: '#ef5a2b', fontSize: '0.65rem', fontWeight: 700, padding: '1px 6px', borderRadius: '2px', marginLeft: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Beta</span>
                     <span style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '3px' }}>
-                      A third PDF that works through each question step by step and explains how to score the marks. Uses more AI credits and adds time.
+                      A clean web page that works through each question step by step and explains how to score the marks (open it, then Save as PDF if you like). Uses more AI credits and adds time.
                     </span>
                   </span>
                 </label>
@@ -554,7 +553,7 @@ export default function DashboardPage() {
                   {extracting ? (
                     <><div style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderLeftColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div> Scanning Papers...</>
                   ) : (
-                    <><BookCopy size={18} /> Extract Topic Snippets ({solutionGuideEnabled && includeSolutionGuide ? '3' : '2'} PDFs)</>
+                    <><BookCopy size={18} /> Extract Topic Snippets ({solutionGuideEnabled && includeSolutionGuide ? '2 PDFs + Guide' : '2 PDFs'})</>
                   )}
                 </button>
 
@@ -602,8 +601,8 @@ export default function DashboardPage() {
                   </button>
                 )}
                 {extractedFiles.sgUrl && (
-                  <button type="button" onClick={() => downloadFile(extractedFiles.sgUrl, extractedFiles.sgName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #0f766e, #115e59)' }}>
-                    <Download size={16} style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline-block' }} /> Download Solution Guide <span style={{ fontSize: '0.65rem', opacity: 0.85, marginLeft: '4px' }}>BETA</span>
+                  <button type="button" onClick={() => window.open(extractedFiles.sgUrl, '_blank', 'noopener')} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #0f766e, #115e59)' }}>
+                    <FileText size={16} style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline-block' }} /> Open Solution Guide <span style={{ fontSize: '0.65rem', opacity: 0.85, marginLeft: '4px' }}>BETA</span>
                   </button>
                 )}
               </div>
@@ -728,7 +727,7 @@ export default function DashboardPage() {
                       )}
                       {topical.sgUrl && (
                         <button
-                          onClick={() => downloadFile(topical.sgUrl, `${topical.subjectCode}_${topical.topic.replace(/\s+/g, '_')}_SolutionGuide.pdf`)}
+                          onClick={() => window.open(topical.sgUrl, '_blank', 'noopener')}
                           style={{
                             background: 'rgba(15, 118, 110, 0.12)',
                             border: '1px solid rgba(15, 118, 110, 0.25)',
@@ -746,7 +745,7 @@ export default function DashboardPage() {
                           onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(15, 118, 110, 0.22)'}
                           onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(15, 118, 110, 0.12)'}
                         >
-                          <Download size={12} /> SG
+                          <FileText size={12} /> Guide
                         </button>
                       )}
                       <button

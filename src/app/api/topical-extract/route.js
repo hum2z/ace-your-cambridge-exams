@@ -184,27 +184,27 @@ ${pageSummaries}
 /**
  * Produce a worked solution + mark-scoring explanation for a single question,
  * grounded in the question text and (when available) its mark scheme. Returns
- * plain text suitable for addTextPageToMaster. On any failure it returns a
+ * { workedSolution, howToScore } as plain-text strings (newlines and "- "
+ * bullets allowed) for the HTML solution guide. On any failure it returns a
  * graceful placeholder so one bad question never aborts the whole guide.
  */
 async function generateSolutionForQuestion({ questionLabel, paperLabel, questionText, markSchemeText, subjectCode, apiKey, model }) {
   const hasMs = markSchemeText && markSchemeText.trim().length > 0;
+  const fallback = (msg) => ({
+    workedSolution: msg,
+    howToScore: 'Please refer to the Question Paper and Mark Scheme PDFs.',
+  });
   const prompt = `
 You are an expert Cambridge International examiner and tutor for subject code "${subjectCode}".
 
-Below is the text of ${questionLabel} from "${paperLabel}", followed by its official mark scheme (if available). Write a clear, exam-focused solution guide for THIS question only, as plain text (no markdown symbols like # or **; use plain headings, line breaks, and simple numbered/bulleted lists).
+Below is the text of ${questionLabel} from "${paperLabel}", followed by its official mark scheme (if available). Write a clear, exam-focused solution guide for THIS question only.
 
-Use plain ASCII notation for maths and science: write Greek letters by name (e.g. "Delta v", "theta", "lambda", "mu"), powers as "v^2", subscripts as "v_0", multiplication as "x" or "*", and units like "m/s^2". Avoid special Unicode symbols.
+Return a JSON object with exactly these two keys, each a plain-text string:
+- "workedSolution": a step-by-step solution. Show the method, formulae used, substitutions, and the final answer with correct units. Address each sub-part (a, b, c, ...) in order. Start each sub-part on a new line. Use "- " for bullet points where helpful.
+- "howToScore": explain, against the mark scheme, exactly how the marks are awarded — which steps earn method vs accuracy marks, the specific keywords/phrases the examiner requires, acceptable alternatives, what is explicitly rejected, and rules like units, significant figures, or error-carried-forward. Tie each mark to the relevant step.
 
-Structure your answer exactly like this:
-
-WORKED SOLUTION
-A step-by-step solution to the question. Show the method, any formulae used, substitutions, and the final answer with correct units. Address each sub-part (a, b, c, ...) in order.
-
-HOW TO SCORE THE MARKS
-Explain, against the mark scheme, exactly how the marks are awarded: which steps earn method marks vs accuracy marks, the specific keywords/phrases the examiner requires, acceptable alternatives, what is explicitly rejected, and rules like units, significant figures, or error-carried-forward. Tie each mark to the relevant part of the solution.
-
-${hasMs ? '' : 'NOTE: No mark scheme text was available for this question, so base "HOW TO SCORE THE MARKS" on standard Cambridge marking conventions for this kind of question and say so briefly.'}
+Write normal mathematical and scientific notation (Greek letters, units, etc. are fine). Use line breaks to separate steps; do NOT use markdown headings (#) or bold (**) markers.
+${hasMs ? '' : 'NOTE: No mark scheme text was available, so base "howToScore" on standard Cambridge marking conventions for this kind of question and say so briefly.'}
 
 QUESTION TEXT:
 ${(questionText || '').slice(0, 8000)}
@@ -220,23 +220,167 @@ ${hasMs ? markSchemeText.slice(0, 8000) : '(not available)'}
       body: JSON.stringify({
         model,
         messages: [
-          { role: 'system', content: 'You are a meticulous Cambridge examiner who writes clear, accurate worked solutions and explains the mark scheme. Output plain text only.' },
+          { role: 'system', content: 'You are a meticulous Cambridge examiner who writes clear, accurate worked solutions and explains the mark scheme. Output ONLY valid JSON.' },
           { role: 'user', content: prompt }
         ],
+        response_format: { type: 'json_object' },
         temperature: 0.3,
       }),
     });
     if (!res.ok) {
       console.warn(`[topical-extract] Solution generation failed for ${questionLabel} (HTTP ${res.status})`);
-      return `${questionLabel}\n${paperLabel}\n\nA worked solution could not be generated for this question (the AI service returned an error). Please refer to the Question Paper and Mark Scheme PDFs.`;
+      return fallback('A worked solution could not be generated for this question (the AI service returned an error).');
     }
     const data = await res.json();
-    const text = data?.choices?.[0]?.message?.content?.trim();
-    return text || `${questionLabel}\n${paperLabel}\n\nNo solution content was returned for this question.`;
+    const parsed = JSON.parse(data.choices[0].message.content);
+    return {
+      workedSolution: (parsed.workedSolution || '').toString().trim() || 'No solution content was returned for this question.',
+      howToScore: (parsed.howToScore || '').toString().trim() || 'No mark-scoring guidance was returned for this question.',
+    };
   } catch (err) {
     console.warn(`[topical-extract] Solution generation error for ${questionLabel}:`, err.message);
-    return `${questionLabel}\n${paperLabel}\n\nA worked solution could not be generated for this question due to an unexpected error. Please refer to the Question Paper and Mark Scheme PDFs.`;
+    return fallback('A worked solution could not be generated for this question due to an unexpected error.');
   }
+}
+
+/** Escape a string for safe insertion into HTML text context. */
+function escapeHtml(str) {
+  return (str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Render a plain-text block (newlines, "- "/"* " bullets, blank-line
+ * paragraphs) into clean, escaped HTML. Consecutive bullet lines become a
+ * <ul>; other runs become <p> with <br> between their lines.
+ */
+function renderTextBlock(text) {
+  const lines = (text || '').replace(/\r\n/g, '\n').split('\n');
+  const html = [];
+  let para = [];
+  let bullets = [];
+  const flushPara = () => {
+    if (para.length) { html.push(`<p>${para.map(escapeHtml).join('<br>')}</p>`); para = []; }
+  };
+  const flushBullets = () => {
+    if (bullets.length) { html.push(`<ul>${bullets.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ul>`); bullets = []; }
+  };
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    const bulletMatch = line.match(/^\s*[-*•]\s+(.*)$/);
+    if (line.trim() === '') { flushPara(); flushBullets(); continue; }
+    if (bulletMatch) { flushPara(); bullets.push(bulletMatch[1]); }
+    else { flushBullets(); para.push(line); }
+  }
+  flushPara();
+  flushBullets();
+  return html.join('\n') || '<p></p>';
+}
+
+/**
+ * Build a self-contained, styled HTML solution guide. Renders maths symbols
+ * natively (UTF-8) and includes a non-print "Save as PDF" toolbar.
+ */
+function buildSolutionGuideHtml({ subjectCode, topic, years, items }) {
+  const sections = items.map((it, i) => `
+    <section class="q-card">
+      <header class="q-head">
+        <span class="q-num">${i + 1}</span>
+        <div>
+          <h2>${escapeHtml(it.questionLabel)}</h2>
+          <p class="q-paper">${escapeHtml(it.paperLabel)}</p>
+        </div>
+      </header>
+      <div class="q-body">
+        <div class="block solution">
+          <h3>Worked Solution</h3>
+          ${renderTextBlock(it.workedSolution)}
+        </div>
+        <div class="block scoring">
+          <h3>How to Score the Marks</h3>
+          ${renderTextBlock(it.howToScore)}
+        </div>
+      </div>
+    </section>`).join('\n');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solution Guide — ${escapeHtml(topic)} (${escapeHtml(subjectCode)})</title>
+<style>
+  :root { --accent:#0f766e; --accent-2:#ef5a2b; --ink:#1a2230; --muted:#5b6675; --line:#e3e7ec; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#eef1f4; color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.65; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .toolbar { position:sticky; top:0; z-index:10; display:flex; justify-content:space-between;
+    align-items:center; gap:12px; padding:12px 20px; background:#0f1722; color:#fff; }
+  .toolbar .brand { font-weight:700; font-size:.9rem; letter-spacing:.3px; }
+  .toolbar .beta { background:rgba(239,90,43,.2); color:#ff8a5c; font-size:.6rem; font-weight:800;
+    padding:2px 7px; border-radius:3px; margin-left:8px; text-transform:uppercase; letter-spacing:.05em; }
+  .toolbar button { background:var(--accent); color:#fff; border:none; border-radius:6px;
+    padding:9px 16px; font-weight:700; font-size:.85rem; cursor:pointer; }
+  .toolbar button:hover { background:#0c5e57; }
+  .sheet { max-width:820px; margin:28px auto; background:#fff; padding:0 0 40px;
+    box-shadow:0 6px 30px rgba(0,0,0,.08); border-radius:4px; overflow:hidden; }
+  .cover { padding:40px 48px; background:linear-gradient(135deg,#0f766e,#115e59); color:#fff; }
+  .cover .kicker { font-size:.72rem; letter-spacing:.18em; text-transform:uppercase; opacity:.85; margin:0 0 10px; }
+  .cover h1 { margin:0 0 6px; font-size:2.1rem; line-height:1.1; }
+  .cover .meta { margin-top:16px; display:flex; flex-wrap:wrap; gap:10px 26px; font-size:.85rem; opacity:.95; }
+  .cover .meta b { display:block; font-size:.64rem; text-transform:uppercase; letter-spacing:.1em; opacity:.8; font-weight:700; }
+  .intro { padding:20px 48px; font-size:.86rem; color:var(--muted); border-bottom:1px solid var(--line); }
+  .q-card { padding:30px 48px; border-bottom:1px solid var(--line); page-break-inside:avoid; }
+  .q-head { display:flex; align-items:center; gap:14px; margin-bottom:18px; }
+  .q-num { flex:0 0 auto; width:38px; height:38px; border-radius:50%; background:var(--accent-2); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-weight:800; }
+  .q-head h2 { margin:0; font-size:1.25rem; }
+  .q-paper { margin:2px 0 0; font-size:.78rem; color:var(--muted); }
+  .block { margin-top:18px; padding:16px 18px; border-radius:6px; border:1px solid var(--line); }
+  .block h3 { margin:0 0 8px; font-size:.95rem; text-transform:uppercase; letter-spacing:.04em; }
+  .block.solution { background:#f6faf9; } .block.solution h3 { color:var(--accent); }
+  .block.scoring { background:#fff7f3; } .block.scoring h3 { color:var(--accent-2); }
+  .block p { margin:0 0 10px; } .block p:last-child { margin-bottom:0; }
+  .block ul { margin:0 0 10px; padding-left:20px; } .block li { margin-bottom:5px; }
+  .foot { padding:22px 48px 0; font-size:.72rem; color:var(--muted); }
+  @media print {
+    body { background:#fff; } .toolbar { display:none !important; }
+    .sheet { margin:0; max-width:100%; box-shadow:none; border-radius:0; }
+    .q-card { page-break-inside:avoid; }
+  }
+  @media (max-width:560px){ .cover,.intro,.q-card,.foot{ padding-left:22px; padding-right:22px; } }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <span class="brand">AceurExam · Solution Guide<span class="beta">Beta</span></span>
+    <button onclick="window.print()">Save as PDF</button>
+  </div>
+  <div class="sheet">
+    <div class="cover">
+      <p class="kicker">Cambridge Topical Solution Guide</p>
+      <h1>${escapeHtml(topic)}</h1>
+      <div class="meta">
+        <span><b>Subject</b>${escapeHtml(subjectCode)}</span>
+        <span><b>Years</b>${escapeHtml((years || []).join(', '))}</span>
+        <span><b>Questions</b>${items.length}</span>
+      </div>
+    </div>
+    <div class="intro">
+      This guide works through each extracted question step by step and explains how marks are awarded
+      against the official mark scheme. Worked solutions are AI-generated for revision support — always
+      cross-check against the Question Paper and Mark Scheme PDFs.
+    </div>
+    ${sections}
+    <div class="foot">Generated by AceurExam · Beta feature · For Cambridge exam preparation.</div>
+  </div>
+</body>
+</html>`;
 }
 
 export async function POST(request) {
@@ -291,7 +435,6 @@ export async function POST(request) {
 
     const masterQP = await PDFDocument.create();
     const masterMS = await PDFDocument.create();
-    const masterSG = sgEnabled ? await PDFDocument.create() : null;
 
     let qpPagesAdded = 0;
     let msPagesAdded = 0;
@@ -459,28 +602,27 @@ export async function POST(request) {
       console.warn(`[topical-extract] No matching QP pages found for ${cleanTopic} in ${cleanCode}`);
     }
 
-    // Build the beta Solution Guide: one AI-written worked-solution + scoring
-    // page per matched question. Token-heavy, so it only runs when opted in and
-    // off production. Failures degrade to placeholder text per question.
+    // Build the beta Solution Guide as a styled, self-contained HTML page: one
+    // worked-solution + scoring section per matched question. Token-heavy, so
+    // it only runs when opted in and off production. Failures degrade to
+    // placeholder text per question.
+    let sgHtmlBytes = null;
     let sgPagesAdded = 0;
-    if (sgEnabled && masterSG && solutionInputs.length > 0) {
+    if (sgEnabled && solutionInputs.length > 0) {
       console.log(`[topical-extract] Generating Solution Guide for ${solutionInputs.length} question(s).`);
-      await addTextPageToMaster(
-        masterSG,
-        `Solution Guide — ${cleanTopic}`,
-        `Subject ${cleanCode}\nYears: ${targetYears.join(', ')}\n\nThis beta guide explains how to solve each extracted question and how marks are awarded against the official mark scheme. Worked solutions are AI-generated for revision support — always cross-check against the Question Paper and Mark Scheme PDFs.`
-      );
+      const items = [];
       for (const input of solutionInputs) {
-        const solutionText = await generateSolutionForQuestion({ ...input, subjectCode: cleanCode, apiKey, model });
-        await addTextPageToMaster(masterSG, `${input.questionLabel} — Solution`, `${input.paperLabel}\n\n${solutionText}`);
-        sgPagesAdded += 1;
+        const solution = await generateSolutionForQuestion({ ...input, subjectCode: cleanCode, apiKey, model });
+        items.push({ ...input, ...solution });
       }
+      const html = buildSolutionGuideHtml({ subjectCode: cleanCode, topic: cleanTopic, years: targetYears, items });
+      sgHtmlBytes = new TextEncoder().encode(html);
+      sgPagesAdded = items.length;
     }
 
     // Serialize master PDFs
     const qpBytes = await masterQP.save();
     const msBytes = await masterMS.save();
-    const sgBytes = sgPagesAdded > 0 && masterSG ? await masterSG.save() : null;
 
     let qpUrl;
     let msUrl;
@@ -490,12 +632,12 @@ export async function POST(request) {
     const isBlobConfigured = token && token !== 'vercel_BLOB_TOKEN_PLACEHOLDER';
 
     if (isBlobConfigured) {
-      // Upload PDFs to Vercel Blob storage (public read) and get URLs
+      // Upload to Vercel Blob storage (public read) and get URLs
       const { put } = await import('@vercel/blob');
       const requestId = crypto.randomUUID();
       const qpBlob = await put(`${requestId}_qp.pdf`, qpBytes, { access: 'public', token });
       const msBlob = msBytes.length ? await put(`${requestId}_ms.pdf`, msBytes, { access: 'public', token }) : null;
-      const sgBlob = sgBytes ? await put(`${requestId}_sg.pdf`, sgBytes, { access: 'public', token }) : null;
+      const sgBlob = sgHtmlBytes ? await put(`${requestId}_sg.html`, sgHtmlBytes, { access: 'public', token, contentType: 'text/html; charset=utf-8' }) : null;
       qpUrl = qpBlob.url;
       msUrl = msBlob?.url || null;
       sgUrl = sgBlob?.url || null;
@@ -505,11 +647,11 @@ export async function POST(request) {
       const storeId = pdfStore.add({
         qp: qpBytes,
         ms: msBytes.length ? msBytes : undefined,
-        sg: sgBytes || undefined
+        sg: sgHtmlBytes || undefined
       });
       qpUrl = `/api/topical-download?requestId=${storeId}&type=qp`;
       msUrl = msBytes.length ? `/api/topical-download?requestId=${storeId}&type=ms` : null;
-      sgUrl = sgBytes ? `/api/topical-download?requestId=${storeId}&type=sg` : null;
+      sgUrl = sgHtmlBytes ? `/api/topical-download?requestId=${storeId}&type=sg` : null;
     }
     return NextResponse.json({
       topic: cleanTopic,
