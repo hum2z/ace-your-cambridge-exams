@@ -135,9 +135,67 @@ ${pageSummaries}
   }
 }
 
+/**
+ * Produce a worked solution + mark-scoring explanation for a single question,
+ * grounded in the question text and (when available) its mark scheme. Returns
+ * plain text suitable for addTextPageToMaster. On any failure it returns a
+ * graceful placeholder so one bad question never aborts the whole guide.
+ */
+async function generateSolutionForQuestion({ questionLabel, paperLabel, questionText, markSchemeText, subjectCode, apiKey, model }) {
+  const hasMs = markSchemeText && markSchemeText.trim().length > 0;
+  const prompt = `
+You are an expert Cambridge International examiner and tutor for subject code "${subjectCode}".
+
+Below is the text of ${questionLabel} from "${paperLabel}", followed by its official mark scheme (if available). Write a clear, exam-focused solution guide for THIS question only, as plain text (no markdown symbols like # or **; use plain headings, line breaks, and simple numbered/bulleted lists).
+
+Structure your answer exactly like this:
+
+WORKED SOLUTION
+A step-by-step solution to the question. Show the method, any formulae used, substitutions, and the final answer with correct units. Address each sub-part (a, b, c, ...) in order.
+
+HOW TO SCORE THE MARKS
+Explain, against the mark scheme, exactly how the marks are awarded: which steps earn method marks vs accuracy marks, the specific keywords/phrases the examiner requires, acceptable alternatives, what is explicitly rejected, and rules like units, significant figures, or error-carried-forward. Tie each mark to the relevant part of the solution.
+
+${hasMs ? '' : 'NOTE: No mark scheme text was available for this question, so base "HOW TO SCORE THE MARKS" on standard Cambridge marking conventions for this kind of question and say so briefly.'}
+
+QUESTION TEXT:
+${(questionText || '').slice(0, 8000)}
+
+MARK SCHEME TEXT:
+${hasMs ? markSchemeText.slice(0, 8000) : '(not available)'}
+`;
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: 'You are a meticulous Cambridge examiner who writes clear, accurate worked solutions and explains the mark scheme. Output plain text only.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3,
+      }),
+    });
+    if (!res.ok) {
+      console.warn(`[topical-extract] Solution generation failed for ${questionLabel} (HTTP ${res.status})`);
+      return `${questionLabel}\n${paperLabel}\n\nA worked solution could not be generated for this question (the AI service returned an error). Please refer to the Question Paper and Mark Scheme PDFs.`;
+    }
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content?.trim();
+    return text || `${questionLabel}\n${paperLabel}\n\nNo solution content was returned for this question.`;
+  } catch (err) {
+    console.warn(`[topical-extract] Solution generation error for ${questionLabel}:`, err.message);
+    return `${questionLabel}\n${paperLabel}\n\nA worked solution could not be generated for this question due to an unexpected error. Please refer to the Question Paper and Mark Scheme PDFs.`;
+  }
+}
+
 export async function POST(request) {
   try {
-    const { subjectCode, topic, years = PAPER_YEARS.slice(0, 2), variants = [], paperType, variantType } = await request.json();
+    const { subjectCode, topic, years = PAPER_YEARS.slice(0, 2), variants = [], paperType, variantType, includeSolutionGuide = false } = await request.json();
+    // Beta Solution Guide: opt-in AND never on the production main site.
+    const sgEnabled = includeSolutionGuide && process.env.VERCEL_ENV !== 'production';
     const selectedVariants = Array.isArray(variants) ? variants.map(v => Number(v)) : [];
     const targetYears = years;
 
@@ -185,9 +243,12 @@ export async function POST(request) {
 
     const masterQP = await PDFDocument.create();
     const masterMS = await PDFDocument.create();
+    const masterSG = sgEnabled ? await PDFDocument.create() : null;
 
     let qpPagesAdded = 0;
     let msPagesAdded = 0;
+    // Collected per-question inputs for the Solution Guide (only when enabled).
+    const solutionInputs = [];
 
     for (const qpPaper of existingQpCandidates) {
       console.log(`[topical-extract] Scanning ${qpPaper.fileName}...`);
@@ -255,9 +316,10 @@ export async function POST(request) {
       let msSegments = new Map();
       let msSrcDoc = null;
       let msEligiblePages = [];
+      let msPageTexts = [];
       if (msBuffer) {
         const msPageMeta = await extractQuestionsMetadata(msBuffer, { layout: 'ms' });
-        const msPageTexts = await extractPagesText(msBuffer);
+        msPageTexts = await extractPagesText(msBuffer);
         const { isAnswerPage } = buildMsAnswerPageFilter(msPageTexts);
 
         msSegments = segmentQuestions(msPageMeta, isAnswerPage, 160);
@@ -312,6 +374,20 @@ export async function POST(request) {
         await addTextPageToMaster(masterQP, `Question ${q}`, `${qpPaper.fileName}\n${paperLabel}`);
         qpPagesAdded += await copyPageRange(masterQP, qpSrcDoc, seg.startPage, seg.endPage, qpCopied);
 
+        // Collect the text this question's Solution Guide page will be built
+        // from (beta, only when enabled). Page ranges are 0-based inclusive.
+        if (sgEnabled) {
+          const questionText = qpPageTexts.slice(seg.startPage, seg.endPage + 1).join('\n');
+          let markSchemeText = '';
+          if (msMode === 'per-question') {
+            const sgMsSeg = msSegments.get(q);
+            if (sgMsSeg) markSchemeText = msPageTexts.slice(sgMsSeg.startPage, sgMsSeg.endPage + 1).join('\n');
+          } else if (msMode === 'whole' && msEligiblePages.length) {
+            markSchemeText = msEligiblePages.map(idx => msPageTexts[idx] || '').join('\n');
+          }
+          solutionInputs.push({ questionLabel: `Question ${q}`, paperLabel, questionText, markSchemeText });
+        }
+
         if (msMode !== 'per-question') continue;
 
         const msSeg = msSegments.get(q);
@@ -335,12 +411,32 @@ export async function POST(request) {
       console.warn(`[topical-extract] No matching QP pages found for ${cleanTopic} in ${cleanCode}`);
     }
 
-    // Serialize both master PDFs
+    // Build the beta Solution Guide: one AI-written worked-solution + scoring
+    // page per matched question. Token-heavy, so it only runs when opted in and
+    // off production. Failures degrade to placeholder text per question.
+    let sgPagesAdded = 0;
+    if (sgEnabled && masterSG && solutionInputs.length > 0) {
+      console.log(`[topical-extract] Generating Solution Guide for ${solutionInputs.length} question(s).`);
+      await addTextPageToMaster(
+        masterSG,
+        `Solution Guide — ${cleanTopic}`,
+        `Subject ${cleanCode}\nYears: ${targetYears.join(', ')}\n\nThis beta guide explains how to solve each extracted question and how marks are awarded against the official mark scheme. Worked solutions are AI-generated for revision support — always cross-check against the Question Paper and Mark Scheme PDFs.`
+      );
+      for (const input of solutionInputs) {
+        const solutionText = await generateSolutionForQuestion({ ...input, subjectCode: cleanCode, apiKey, model });
+        await addTextPageToMaster(masterSG, `${input.questionLabel} — Solution`, `${input.paperLabel}\n\n${solutionText}`);
+        sgPagesAdded += 1;
+      }
+    }
+
+    // Serialize master PDFs
     const qpBytes = await masterQP.save();
     const msBytes = await masterMS.save();
+    const sgBytes = sgPagesAdded > 0 && masterSG ? await masterSG.save() : null;
 
     let qpUrl;
     let msUrl;
+    let sgUrl = null;
 
     const token = process.env.BLOB_READ_WRITE_TOKEN;
     const isBlobConfigured = token && token !== 'vercel_BLOB_TOKEN_PLACEHOLDER';
@@ -351,17 +447,21 @@ export async function POST(request) {
       const requestId = crypto.randomUUID();
       const qpBlob = await put(`${requestId}_qp.pdf`, qpBytes, { access: 'public', token });
       const msBlob = msBytes.length ? await put(`${requestId}_ms.pdf`, msBytes, { access: 'public', token }) : null;
+      const sgBlob = sgBytes ? await put(`${requestId}_sg.pdf`, sgBytes, { access: 'public', token }) : null;
       qpUrl = qpBlob.url;
       msUrl = msBlob?.url || null;
+      sgUrl = sgBlob?.url || null;
     } else {
       console.log('[topical-extract] Vercel Blob token is missing or placeholder. Falling back to in-memory store.');
       // Fallback: save to in-memory store and serve via topical-download API
       const storeId = pdfStore.add({
         qp: qpBytes,
-        ms: msBytes.length ? msBytes : undefined
+        ms: msBytes.length ? msBytes : undefined,
+        sg: sgBytes || undefined
       });
       qpUrl = `/api/topical-download?requestId=${storeId}&type=qp`;
       msUrl = msBytes.length ? `/api/topical-download?requestId=${storeId}&type=ms` : null;
+      sgUrl = sgBytes ? `/api/topical-download?requestId=${storeId}&type=sg` : null;
     }
     return NextResponse.json({
       topic: cleanTopic,
@@ -369,8 +469,10 @@ export async function POST(request) {
       years: targetYears,
       qpPagesFound: qpPagesAdded,
       msPagesFound: msPagesAdded,
+      sgPagesFound: sgPagesAdded,
       qpUrl,
       msUrl,
+      sgUrl,
     });
 
   } catch (error) {

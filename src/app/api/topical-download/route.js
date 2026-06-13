@@ -5,7 +5,7 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const requestId = searchParams.get('requestId');
-    const type = searchParams.get('type'); // 'qp' or 'ms'
+    const type = searchParams.get('type'); // 'qp', 'ms', or 'sg'
 
     if (!requestId || !type) {
       return NextResponse.json({ error: 'Missing requestId or type' }, { status: 400 });
@@ -21,6 +21,8 @@ export async function GET(request) {
       pdfBytes = entry.qp;
     } else if (type === 'ms') {
       pdfBytes = entry.ms;
+    } else if (type === 'sg') {
+      pdfBytes = entry.sg;
     } else {
       return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });
     }

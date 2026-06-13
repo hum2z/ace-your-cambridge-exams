@@ -126,6 +126,7 @@ export const saveTopicalToFirebase = async (userId, topical) => {
       years: topical.years,
       qpUrl: topical.qpUrl,
       msUrl: topical.msUrl || null,
+      sgUrl: topical.sgUrl || null,
       qpPagesFound: topical.qpPagesFound || 0,
       msPagesFound: topical.msPagesFound || 0,
       createdAt: new Date().toISOString()

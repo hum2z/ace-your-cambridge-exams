@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 type PdfEntry = {
   qp: Uint8Array;
   ms?: Uint8Array;
+  sg?: Uint8Array;
   timestamp: number;
 };
 
@@ -17,7 +18,7 @@ class PdfStore {
     this.cleanupInterval = setInterval(() => this.purgeOld(), 60_000);
   }
 
-  add(entry: { qp: Uint8Array; ms?: Uint8Array }): string {
+  add(entry: { qp: Uint8Array; ms?: Uint8Array; sg?: Uint8Array }): string {
     const id = randomUUID();
     this.store.set(id, { ...entry, timestamp: Date.now() });
     return id;

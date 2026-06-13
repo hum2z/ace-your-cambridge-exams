@@ -39,6 +39,10 @@ export default function DashboardPage() {
   const [selectedVariants, setSelectedVariants] = useState([])
   const [paperType, setPaperType] = useState('')
   const [variantType, setVariantType] = useState('')
+  const [includeSolutionGuide, setIncludeSolutionGuide] = useState(false)
+  // Beta Solution Guide is preview-only — visible everywhere except the
+  // production main site (NEXT_PUBLIC_VERCEL_ENV is undefined in local dev).
+  const solutionGuideEnabled = process.env.NEXT_PUBLIC_VERCEL_ENV !== 'production'
   const [extracting, setExtracting] = useState(false)
   const [extractStatus, setExtractStatus] = useState('')
   const [extractedFiles, setExtractedFiles] = useState(null)
@@ -336,7 +340,7 @@ export default function DashboardPage() {
       const res = await fetch('/api/topical-extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subjectCode: cleanCode, topic: cleanTopic, years: selectedYears, variants: selectedVariants, paperType, variantType })
+        body: JSON.stringify({ subjectCode: cleanCode, topic: cleanTopic, years: selectedYears, variants: selectedVariants, paperType, variantType, includeSolutionGuide: solutionGuideEnabled && includeSolutionGuide })
       });
 
       const data = await res.json();
@@ -349,11 +353,13 @@ export default function DashboardPage() {
         qpUrl: data.qpUrl,
         qpName: `${cleanCode}_${cleanTopic.replace(/\s+/g, '_')}_Questions.pdf`,
         msUrl: data.msUrl,
-        msName: data.msUrl ? `${cleanCode}_${cleanTopic.replace(/\s+/g, '_')}_MarkScheme.pdf` : null
+        msName: data.msUrl ? `${cleanCode}_${cleanTopic.replace(/\s+/g, '_')}_MarkScheme.pdf` : null,
+        sgUrl: data.sgUrl,
+        sgName: data.sgUrl ? `${cleanCode}_${cleanTopic.replace(/\s+/g, '_')}_SolutionGuide.pdf` : null
       };
       setExtractedFiles(fileResult);
 
-      setExtractStatus(`✅ Found ${data.qpPagesFound} question page(s) and ${data.msPagesFound} mark scheme page(s) for "${cleanTopic}"!`);
+      setExtractStatus(`✅ Found ${data.qpPagesFound} question page(s) and ${data.msPagesFound} mark scheme page(s) for "${cleanTopic}"!${data.sgPagesFound ? ` Generated a Solution Guide for ${data.sgPagesFound} question(s).` : ''}`);
       if (!isPremium && isTrial) await consumeTrialUse('topical');
       showToast(`Topic extraction complete! Saved to your library.`, 'success');
 
@@ -365,6 +371,7 @@ export default function DashboardPage() {
           years: selectedYears,
           qpUrl: data.qpUrl,
           msUrl: data.msUrl,
+          sgUrl: data.sgUrl || null,
           qpPagesFound: data.qpPagesFound,
           msPagesFound: data.msPagesFound
         });
@@ -496,6 +503,25 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {/* Solution Guide opt-in (beta, preview-only) */}
+              {solutionGuideEnabled && (
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', padding: '12px 14px', border: '1px dashed rgba(239,90,43,0.4)', borderRadius: '2px', background: 'rgba(239,90,43,0.05)' }}>
+                  <input
+                    type="checkbox"
+                    checked={includeSolutionGuide}
+                    onChange={(e) => setIncludeSolutionGuide(e.target.checked)}
+                    style={{ marginTop: '3px', accentColor: '#ef5a2b', width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Also generate a Solution Guide</span>
+                    <span style={{ background: 'rgba(239,90,43,0.18)', color: '#ef5a2b', fontSize: '0.65rem', fontWeight: 700, padding: '1px 6px', borderRadius: '2px', marginLeft: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Beta</span>
+                    <span style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '3px' }}>
+                      A third PDF that works through each question step by step and explains how to score the marks. Uses more AI credits and adds time.
+                    </span>
+                  </span>
+                </label>
+              )}
+
               {/* Status text */}
               {extractStatus && (
                 <p style={{ fontSize: '0.85rem', color: '#ef5a2b', margin: 0 }}>{extractStatus}</p>
@@ -528,7 +554,7 @@ export default function DashboardPage() {
                   {extracting ? (
                     <><div style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderLeftColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div> Scanning Papers...</>
                   ) : (
-                    <><BookCopy size={18} /> Extract Topic Snippets (2 PDFs)</>
+                    <><BookCopy size={18} /> Extract Topic Snippets ({solutionGuideEnabled && includeSolutionGuide ? '3' : '2'} PDFs)</>
                   )}
                 </button>
 
@@ -573,6 +599,11 @@ export default function DashboardPage() {
                 {extractedFiles.msUrl && (
                   <button type="button" onClick={() => downloadFile(extractedFiles.msUrl, extractedFiles.msName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #ef5a2b, #c93f17)' }}>
                     <Download size={16} style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline-block' }} /> Download Mark Scheme
+                  </button>
+                )}
+                {extractedFiles.sgUrl && (
+                  <button type="button" onClick={() => downloadFile(extractedFiles.sgUrl, extractedFiles.sgName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #0f766e, #115e59)' }}>
+                    <Download size={16} style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline-block' }} /> Download Solution Guide <span style={{ fontSize: '0.65rem', opacity: 0.85, marginLeft: '4px' }}>BETA</span>
                   </button>
                 )}
               </div>
@@ -693,6 +724,29 @@ export default function DashboardPage() {
                           onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(168, 85, 247, 0.1)'}
                         >
                           <Download size={12} /> MS
+                        </button>
+                      )}
+                      {topical.sgUrl && (
+                        <button
+                          onClick={() => downloadFile(topical.sgUrl, `${topical.subjectCode}_${topical.topic.replace(/\s+/g, '_')}_SolutionGuide.pdf`)}
+                          style={{
+                            background: 'rgba(15, 118, 110, 0.12)',
+                            border: '1px solid rgba(15, 118, 110, 0.25)',
+                            color: '#0f766e',
+                            borderRadius: '2px',
+                            padding: '8px 14px',
+                            fontSize: '0.8rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(15, 118, 110, 0.22)'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(15, 118, 110, 0.12)'}
+                        >
+                          <Download size={12} /> SG
                         </button>
                       )}
                       <button
