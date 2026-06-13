@@ -15,6 +15,49 @@ import {
 
 export const maxDuration = 300;
 
+// pdf-lib's built-in fonts only encode WinAnsi (CP1252). AI-written solutions
+// routinely contain Greek letters and maths symbols that fall outside it, which
+// makes drawText throw. Transliterate the common ones to readable ASCII, keep
+// the symbols WinAnsi already supports (° ± ² ³ µ × ÷ ·), and drop anything
+// still unencodable so a stray glyph can never abort a render.
+const WINANSI_MAP = {
+  'Α': 'Alpha', 'Β': 'Beta', 'Γ': 'Gamma', 'Δ': 'Delta', 'Ε': 'Epsilon', 'Ζ': 'Zeta',
+  'Η': 'Eta', 'Θ': 'Theta', 'Ι': 'Iota', 'Κ': 'Kappa', 'Λ': 'Lambda', 'Μ': 'Mu',
+  'Ν': 'Nu', 'Ξ': 'Xi', 'Ο': 'Omicron', 'Π': 'Pi', 'Ρ': 'Rho', 'Σ': 'Sigma',
+  'Τ': 'Tau', 'Υ': 'Upsilon', 'Φ': 'Phi', 'Χ': 'Chi', 'Ψ': 'Psi', 'Ω': 'Omega',
+  'α': 'alpha', 'β': 'beta', 'γ': 'gamma', 'δ': 'delta', 'ε': 'epsilon', 'ζ': 'zeta',
+  'η': 'eta', 'θ': 'theta', 'ι': 'iota', 'κ': 'kappa', 'λ': 'lambda',
+  'ν': 'nu', 'ξ': 'xi', 'ο': 'omicron', 'π': 'pi', 'ρ': 'rho', 'ς': 'sigma', 'σ': 'sigma',
+  'τ': 'tau', 'υ': 'upsilon', 'φ': 'phi', 'χ': 'chi', 'ψ': 'psi', 'ω': 'omega',
+  '→': '->', '←': '<-', '↔': '<->', '⇒': '=>', '⇐': '<=', '↑': 'up', '↓': 'down',
+  '≈': '~=', '≤': '<=', '≥': '>=', '≠': '!=', '∝': ' proportional to ', '∴': ' therefore ',
+  '√': 'sqrt', '∞': 'infinity', '∫': 'integral', '∑': 'sum', '∆': 'Delta', '∂': 'd',
+  '⋅': '*', '∙': '*', '−': '-', '–': '-', '—': '--', '…': '...',
+  '“': '"', '”': '"', '‘': "'", '’': "'", '•': '-', '°': ' deg ', '′': "'", '″': '"',
+  '½': '1/2', '¼': '1/4', '¾': '3/4', '⁰': '^0', '¹': '^1', '⁴': '^4', '⁵': '^5',
+  '⁶': '^6', '⁷': '^7', '⁸': '^8', '⁹': '^9', '₀': '_0', '₁': '_1', '₂': '_2',
+  '₃': '_3', '₄': '_4', '₅': '_5', '₆': '_6', '₇': '_7', '₈': '_8', '₉': '_9',
+};
+
+function toWinAnsiSafe(input) {
+  if (!input) return '';
+  let out = '';
+  for (const ch of input) {
+    if (WINANSI_MAP[ch] !== undefined) {
+      out += WINANSI_MAP[ch];
+      continue;
+    }
+    const code = ch.codePointAt(0);
+    // Keep printable ASCII and the WinAnsi-safe Latin-1 supplement (incl.
+    // ² ³ µ × ÷). Convert tabs to spaces; drop everything else.
+    if (code === 9) out += '  ';
+    else if (code >= 0x20 && code <= 0x7e) out += ch;
+    else if (code >= 0xa0 && code <= 0xff) out += ch;
+    // anything else is silently dropped
+  }
+  return out;
+}
+
 function wrapText(text, fontSize, font, maxWidth) {
   const paragraphs = text.split('\n');
   const lines = [];
@@ -47,6 +90,9 @@ function wrapText(text, fontSize, font, maxWidth) {
 }
 
 async function addTextPageToMaster(masterDoc, title, text) {
+  // Guarantee every glyph is encodable before it reaches drawText/widthOf...
+  title = toWinAnsiSafe(title);
+  text = toWinAnsiSafe(text);
   const font = await masterDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await masterDoc.embedFont(StandardFonts.HelveticaBold);
 
@@ -147,6 +193,8 @@ async function generateSolutionForQuestion({ questionLabel, paperLabel, question
 You are an expert Cambridge International examiner and tutor for subject code "${subjectCode}".
 
 Below is the text of ${questionLabel} from "${paperLabel}", followed by its official mark scheme (if available). Write a clear, exam-focused solution guide for THIS question only, as plain text (no markdown symbols like # or **; use plain headings, line breaks, and simple numbered/bulleted lists).
+
+Use plain ASCII notation for maths and science: write Greek letters by name (e.g. "Delta v", "theta", "lambda", "mu"), powers as "v^2", subscripts as "v_0", multiplication as "x" or "*", and units like "m/s^2". Avoid special Unicode symbols.
 
 Structure your answer exactly like this:
 
