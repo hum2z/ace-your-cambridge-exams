@@ -383,6 +383,27 @@ function buildSolutionGuideHtml({ subjectCode, topic, years, items }) {
 </html>`;
 }
 
+/**
+ * Parses an MCQ answer grid's text into a Map of question number → answer
+ * letter. Cambridge grids list rows like "1 B 1" (question, answer, marks);
+ * the trailing mark digit is skipped because the matcher needs a letter right
+ * after the number. Keeps the first letter seen per number to ignore header
+ * noise. Returns an empty Map when nothing parses.
+ */
+function parseMcqAnswers(text) {
+  const map = new Map();
+  if (!text) return map;
+  const re = /\b(\d{1,2})\s+([A-Da-d])\b/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const n = parseInt(m[1], 10);
+    if (n >= 1 && n <= 40 && !map.has(String(n))) {
+      map.set(String(n), m[2].toUpperCase());
+    }
+  }
+  return map;
+}
+
 export async function POST(request) {
   try {
     const { subjectCode, topic, years = PAPER_YEARS.slice(0, 2), variants = [], paperType, variantType, includeSolutionGuide = false } = await request.json();
@@ -548,30 +569,56 @@ export async function POST(request) {
           qpPagesAdded += await copyPageRange(masterQP, qpSrcDoc, seg.startPage, seg.endPage, qpCopied);
         }
 
-        if (msSrcDoc) {
-          await addTextPageToMaster(
-            masterMS,
-            `Answer key (MCQ) — ${msName}`,
-            `${paperLabel}\n\nMultiple-choice answers are published as a single grid that cannot be split per question. The full answer key follows; look up question(s) ${targetQs.join(', ')}.`
-          );
-          const pagesToCopy = msEligiblePages.length
-            ? msEligiblePages
-            : Array.from({ length: msSrcDoc.getPageCount() }, (_, i) => i);
-          for (const idx of pagesToCopy) {
-            msPagesAdded += await copyPageRange(masterMS, msSrcDoc, idx, idx, msCopied);
-          }
-        } else {
+        const gridText = msEligiblePages.length
+          ? msEligiblePages.map(idx => msPageTexts[idx] || '').join('\n')
+          : msPageTexts.join('\n');
+
+        if (!msSrcDoc) {
           await addTextPageToMaster(
             masterMS,
             `Answer key unavailable — ${msName}`,
             `${paperLabel}\n\nThe mark scheme PDF could not be found or downloaded for question(s) ${targetQs.join(', ')}.`
           );
+        } else {
+          // Read just the answers for the selected questions out of the grid,
+          // so the mark scheme shows "Question 3: B" instead of the whole key.
+          const answerMap = parseMcqAnswers(gridText);
+          const foundLines = [];
+          const missing = [];
+          for (const q of targetQs) {
+            const a = answerMap.get(String(q));
+            if (a) foundLines.push(`Question ${q}:  ${a}   (1 mark)`);
+            else missing.push(q);
+          }
+
+          if (foundLines.length) {
+            const note = missing.length
+              ? `\n\nThe answer(s) for question(s) ${missing.join(', ')} could not be read automatically; the full answer grid is included after this page.`
+              : '';
+            await addTextPageToMaster(masterMS, `Answers — ${msName}`, `${paperLabel}\n\n${foundLines.join('\n')}${note}`);
+            msPagesAdded += 1;
+          }
+
+          // Include the full grid only as a fallback: nothing parsed, or some
+          // selected answers were not found.
+          if (!foundLines.length || missing.length) {
+            if (!foundLines.length) {
+              await addTextPageToMaster(
+                masterMS,
+                `Answer key (MCQ) — ${msName}`,
+                `${paperLabel}\n\nThe answer key could not be read automatically. The full grid follows; look up question(s) ${targetQs.join(', ')}.`
+              );
+            }
+            const pagesToCopy = msEligiblePages.length
+              ? msEligiblePages
+              : Array.from({ length: msSrcDoc.getPageCount() }, (_, i) => i);
+            for (const idx of pagesToCopy) {
+              msPagesAdded += await copyPageRange(masterMS, msSrcDoc, idx, idx, msCopied);
+            }
+          }
         }
 
         if (sgEnabled) {
-          const gridText = msEligiblePages.length
-            ? msEligiblePages.map(idx => msPageTexts[idx] || '').join('\n')
-            : msPageTexts.join('\n');
           for (const q of targetQs) {
             const seg = qpSegments.get(q);
             const questionText = qpPageTexts.slice(seg.startPage, seg.endPage + 1).join('\n');
