@@ -461,6 +461,8 @@ export async function POST(request) {
     let msPagesAdded = 0;
     // Collected per-question inputs for the Solution Guide (only when enabled).
     const solutionInputs = [];
+    // MCQ answers gathered across papers, emitted as one consolidated page.
+    const mcqAnswerSections = [];
 
     for (const qpPaper of existingQpCandidates) {
       console.log(`[topical-extract] Scanning ${qpPaper.fileName}...`);
@@ -574,41 +576,30 @@ export async function POST(request) {
           : msPageTexts.join('\n');
 
         if (!msSrcDoc) {
-          await addTextPageToMaster(
-            masterMS,
-            `Answer key unavailable — ${msName}`,
-            `${paperLabel}\n\nThe mark scheme PDF could not be found or downloaded for question(s) ${targetQs.join(', ')}.`
-          );
+          mcqAnswerSections.push({ paperLabel, lines: [], missing: targetQs, unavailable: true });
         } else {
           // Read just the answers for the selected questions out of the grid,
-          // so the mark scheme shows "Question 3: B" instead of the whole key.
+          // and gather them for one consolidated answers page (built after the
+          // loop) so each paper doesn't produce its own near-empty page.
           const answerMap = parseMcqAnswers(gridText);
-          const foundLines = [];
+          const lines = [];
           const missing = [];
           for (const q of targetQs) {
             const a = answerMap.get(String(q));
-            if (a) foundLines.push(`Question ${q}:  ${a}   (1 mark)`);
+            if (a) lines.push(`Question ${q}:  ${a}   (1 mark)`);
             else missing.push(q);
           }
+          mcqAnswerSections.push({ paperLabel, lines, missing });
 
-          if (foundLines.length) {
-            const note = missing.length
-              ? `\n\nThe answer(s) for question(s) ${missing.join(', ')} could not be read automatically; the full answer grid is included after this page.`
-              : '';
-            await addTextPageToMaster(masterMS, `Answers — ${msName}`, `${paperLabel}\n\n${foundLines.join('\n')}${note}`);
-            msPagesAdded += 1;
-          }
-
-          // Include the full grid only as a fallback: nothing parsed, or some
-          // selected answers were not found.
-          if (!foundLines.length || missing.length) {
-            if (!foundLines.length) {
-              await addTextPageToMaster(
-                masterMS,
-                `Answer key (MCQ) — ${msName}`,
-                `${paperLabel}\n\nThe answer key could not be read automatically. The full grid follows; look up question(s) ${targetQs.join(', ')}.`
-              );
-            }
+          // Attach the full grid only as a fallback, when some selected answers
+          // could not be read automatically.
+          if (!lines.length || missing.length) {
+            const which = (missing.length ? missing : targetQs).join(', ');
+            await addTextPageToMaster(
+              masterMS,
+              `Full answer grid — ${msName}`,
+              `${paperLabel}\n\nIncluded because the answer(s) for question(s) ${which} could not be read automatically.`
+            );
             const pagesToCopy = msEligiblePages.length
               ? msEligiblePages
               : Array.from({ length: msSrcDoc.getPageCount() }, (_, i) => i);
@@ -696,6 +687,22 @@ export async function POST(request) {
 
     if (qpPagesAdded === 0) {
       console.warn(`[topical-extract] No matching QP pages found for ${cleanTopic} in ${cleanCode}`);
+    }
+
+    // Emit one consolidated MCQ answers page (grouped by paper) instead of a
+    // separate near-empty page per paper.
+    if (mcqAnswerSections.length) {
+      const body = mcqAnswerSections.map(sec => {
+        if (sec.unavailable) {
+          return `${sec.paperLabel}\n  Mark scheme unavailable for question(s) ${sec.missing.join(', ')}.`;
+        }
+        const ls = sec.lines.length
+          ? sec.lines.map(l => `  ${l}`).join('\n')
+          : '  (see full answer grid pages)';
+        return `${sec.paperLabel}\n${ls}`;
+      }).join('\n\n');
+      await addTextPageToMaster(masterMS, `Multiple-choice answers — ${cleanCode}`, body);
+      msPagesAdded += 1;
     }
 
     // Build the beta Solution Guide as a styled, self-contained HTML page: one
