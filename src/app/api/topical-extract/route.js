@@ -533,6 +533,55 @@ export async function POST(request) {
       const paperLabel = `${qpPaper.year} ${qpPaper.termLabel} — Paper ${qpPaper.paperNumber} Variant ${qpPaper.variant}`;
       const msName = matchingMs ? matchingMs.fileName : qpPaper.fileName.replace(/_qp_/, '_ms_');
 
+      // MCQ papers (e.g. science Paper 1) have ~40 short questions and a mark
+      // scheme that is a single answer grid: it cannot be split per question,
+      // and several questions share a QP page. Detecting this (many segmented
+      // questions) lets us emit the selected question pages once and the answer
+      // grid once — instead of the per-question splitting that duplicates the
+      // grid under the first answer and drops the rest.
+      const isMcq = qpSegments.size >= 20;
+      if (isMcq) {
+        const qpLabel = targetQs.length > 1 ? `Questions ${targetQs.join(', ')}` : `Question ${targetQs[0]}`;
+        await addTextPageToMaster(masterQP, qpLabel, `${qpPaper.fileName}\n${paperLabel}`);
+        for (const q of targetQs) {
+          const seg = qpSegments.get(q);
+          qpPagesAdded += await copyPageRange(masterQP, qpSrcDoc, seg.startPage, seg.endPage, qpCopied);
+        }
+
+        if (msSrcDoc) {
+          await addTextPageToMaster(
+            masterMS,
+            `Answer key (MCQ) — ${msName}`,
+            `${paperLabel}\n\nMultiple-choice answers are published as a single grid that cannot be split per question. The full answer key follows; look up question(s) ${targetQs.join(', ')}.`
+          );
+          const pagesToCopy = msEligiblePages.length
+            ? msEligiblePages
+            : Array.from({ length: msSrcDoc.getPageCount() }, (_, i) => i);
+          for (const idx of pagesToCopy) {
+            msPagesAdded += await copyPageRange(masterMS, msSrcDoc, idx, idx, msCopied);
+          }
+        } else {
+          await addTextPageToMaster(
+            masterMS,
+            `Answer key unavailable — ${msName}`,
+            `${paperLabel}\n\nThe mark scheme PDF could not be found or downloaded for question(s) ${targetQs.join(', ')}.`
+          );
+        }
+
+        if (sgEnabled) {
+          const gridText = msEligiblePages.length
+            ? msEligiblePages.map(idx => msPageTexts[idx] || '').join('\n')
+            : msPageTexts.join('\n');
+          for (const q of targetQs) {
+            const seg = qpSegments.get(q);
+            const questionText = qpPageTexts.slice(seg.startPage, seg.endPage + 1).join('\n');
+            solutionInputs.push({ questionLabel: `Question ${q}`, paperLabel, questionText, markSchemeText: gridText });
+          }
+        }
+        console.log(`[topical-extract] Emitted MCQ questions [${targetQs.join(', ')}] from ${qpPaper.fileName} (answer grid included once)`);
+        continue;
+      }
+
       // How to serve answers for this paper:
       //  'per-question' — answers located per question (structured papers)
       //  'whole'        — scheme exists but can't be split (e.g. MCQ answer
