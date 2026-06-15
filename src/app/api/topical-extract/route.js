@@ -564,8 +564,6 @@ export async function POST(request) {
       // grid under the first answer and drops the rest.
       const isMcq = qpSegments.size >= 20;
       if (isMcq) {
-        const qpLabel = targetQs.length > 1 ? `Questions ${targetQs.join(', ')}` : `Question ${targetQs[0]}`;
-        await addTextPageToMaster(masterQP, qpLabel, `${qpPaper.fileName}\n${paperLabel}`);
         for (const q of targetQs) {
           const seg = qpSegments.get(q);
           qpPagesAdded += await copyPageRange(masterQP, qpSrcDoc, seg.startPage, seg.endPage, qpCopied);
@@ -627,29 +625,19 @@ export async function POST(request) {
       //  'missing'      — no usable scheme; placeholders keep the lockstep
       const msMode = msSrcDoc ? (msSegments.size > 0 ? 'per-question' : 'whole') : 'missing';
 
+      // 'whole' mode: scheme exists but can't be split — include its answer
+      // pages once (no separator page).
       if (msMode === 'whole') {
-        await addTextPageToMaster(
-          masterMS,
-          `Answers — ${msName}`,
-          `${paperLabel}\n\nThis mark scheme could not be split into individual questions (it is likely an answer grid). The complete answer section follows; it covers question(s) ${targetQs.join(', ')}.`
-        );
         const pagesToCopy = msEligiblePages.length
           ? msEligiblePages
           : Array.from({ length: msSrcDoc.getPageCount() }, (_, i) => i);
         for (const idx of pagesToCopy) {
           msPagesAdded += await copyPageRange(masterMS, msSrcDoc, idx, idx, msCopied);
         }
-      } else if (msMode === 'missing') {
-        await addTextPageToMaster(
-          masterMS,
-          `Mark scheme unavailable: ${msName}`,
-          `${paperLabel}\n\nThe mark scheme PDF could not be found or downloaded. This placeholder stands in for the answers to question(s) ${targetQs.join(', ')} so questions and answers stay in the same order across both PDFs.`
-        );
       }
 
       for (const q of targetQs) {
         const seg = qpSegments.get(q);
-        await addTextPageToMaster(masterQP, `Question ${q}`, `${qpPaper.fileName}\n${paperLabel}`);
         qpPagesAdded += await copyPageRange(masterQP, qpSrcDoc, seg.startPage, seg.endPage, qpCopied);
 
         // Collect the text this question's Solution Guide page will be built
@@ -668,18 +656,11 @@ export async function POST(request) {
 
         if (msMode !== 'per-question') continue;
 
+        // Copy this question's answer pages (no separator). Missing answers are
+        // simply skipped — the printed question numbers keep things readable.
         const msSeg = msSegments.get(q);
         if (msSeg) {
-          await addTextPageToMaster(masterMS, `Answer ${q}`, `${msName}\n${paperLabel}`);
-          // Adds 0 pages only when this answer shares its page(s) with the
-          // previous question's answers, which then sit directly above.
           msPagesAdded += await copyPageRange(masterMS, msSrcDoc, msSeg.startPage, msSeg.endPage, msCopied);
-        } else {
-          await addTextPageToMaster(
-            masterMS,
-            `Answer ${q} — not located`,
-            `${msName}\n${paperLabel}\n\nThe answers to question ${q} could not be located in this mark scheme. This placeholder keeps questions and answers in the same order.`
-          );
         }
       }
       console.log(`[topical-extract] Emitted questions [${targetQs.join(', ')}] from ${qpPaper.fileName} (MS mode: ${msMode})`);
