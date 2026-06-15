@@ -40,9 +40,21 @@ export default function DashboardPage() {
   const [paperType, setPaperType] = useState('')
   const [variantType, setVariantType] = useState('')
   const [includeSolutionGuide, setIncludeSolutionGuide] = useState(false)
-  // Beta Solution Guide is preview-only — visible everywhere except the
-  // production main site (NEXT_PUBLIC_VERCEL_ENV is undefined in local dev).
-  const solutionGuideEnabled = process.env.NEXT_PUBLIC_VERCEL_ENV !== 'production'
+  // Beta Solution Guide is preview-only: shown everywhere EXCEPT the production
+  // site (aceurexam.com). Default false so it never flashes on production, then
+  // enable client-side. Prefer VERCEL_ENV; fall back to hostname in case the
+  // env var isn't exposed to the browser. The API is gated server-side too.
+  const [solutionGuideEnabled, setSolutionGuideEnabled] = useState(false)
+  useEffect(() => {
+    const env = process.env.NEXT_PUBLIC_VERCEL_ENV
+    if (env) {
+      setSolutionGuideEnabled(env !== 'production')
+      return
+    }
+    const host = window.location.hostname
+    const isProd = host === 'aceurexam.com' || host === 'www.aceurexam.com'
+    setSolutionGuideEnabled(!isProd)
+  }, [])
   const [extracting, setExtracting] = useState(false)
   const [extractStatus, setExtractStatus] = useState('')
   const [extractedFiles, setExtractedFiles] = useState(null)
