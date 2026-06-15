@@ -689,7 +689,9 @@ export async function POST(request) {
       const sgBlob = sgHtmlBytes ? await put(`${requestId}_sg.html`, sgHtmlBytes, { access: 'public', token, contentType: 'text/html; charset=utf-8' }) : null;
       qpUrl = qpBlob.url;
       msUrl = msBlob?.url || null;
-      sgUrl = sgBlob?.url || null;
+      // Blob serves text/html as a forced download, so open the guide through
+      // our own origin (Content-Disposition: inline) instead of the blob URL.
+      sgUrl = sgBlob ? `/api/solution-guide?src=${encodeURIComponent(sgBlob.url)}` : null;
     } else {
       console.log('[topical-extract] Vercel Blob token is missing or placeholder. Falling back to in-memory store.');
       // Fallback: save to in-memory store and serve via topical-download API
