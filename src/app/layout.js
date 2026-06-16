@@ -2,6 +2,7 @@ import './globals.css'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ScrollReveal from '@/components/ScrollReveal'
+import GoogleAnalytics from '@/components/GoogleAnalytics'
 import { AuthProvider } from '@/components/AuthContext'
 
 const SITE_URL = 'https://aceurexam.com'
@@ -109,6 +110,7 @@ const structuredData = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <GoogleAnalytics />
       <body>
         <script
           type="application/ld+json"
