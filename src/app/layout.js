@@ -39,10 +39,10 @@ export const metadata = {
       'Build topical Cambridge past paper packs in seconds, read examiner intelligence, and study with an AI tutor — all in one workspace.',
     images: [
       {
-        url: '/clean_book.png',
-        width: 1024,
-        height: 1024,
-        alt: 'AceurExam — the Cambridge revision workspace',
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'AceurExam — Cambridge past papers by topic, examiner notes & AI tutor',
       },
     ],
     locale: 'en_US',
@@ -52,7 +52,7 @@ export const metadata = {
     title: 'AceurExam | Cambridge Past Papers by Topic',
     description:
       'Topical Cambridge past paper packs, examiner notes, and an AI tutor in one workspace.',
-    images: ['/clean_book.png'],
+    images: ['/og-image.png'],
   },
   robots: {
     index: true,
@@ -79,7 +79,7 @@ const structuredData = {
       '@id': `${SITE_URL}/#organization`,
       name: 'AceurExam',
       url: SITE_URL,
-      logo: `${SITE_URL}/clean_book.png`,
+      logo: `${SITE_URL}/og-image.png`,
     },
     {
       '@type': 'WebSite',
