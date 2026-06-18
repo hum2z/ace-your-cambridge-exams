@@ -79,7 +79,7 @@ const structuredData = {
       '@id': `${SITE_URL}/#organization`,
       name: 'AceurExam',
       url: SITE_URL,
-      logo: `${SITE_URL}/og-image.png`,
+      logo: `${SITE_URL}/logo-square.png`,
     },
     {
       '@type': 'WebSite',
