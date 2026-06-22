@@ -46,12 +46,12 @@ export default function HomePage() {
           </div>
 
           <div>
-            <p className="section-kicker">A revision workspace</p>
+            <p className="section-kicker">AceurExam · Cambridge revision workspace</p>
             <h1 className="section-heading">
-              Past papers, made <em>useful</em>.
+              Cambridge past papers, made <em>useful</em>.
             </h1>
             <p className="section-copy">
-              Quiet tools for ambitious students — build topical packs, read examiner notes, and study beside an AI tutor that stays out of the way.
+              AceurExam turns Cambridge (CAIE) past papers into topical practice. Build A Level and AS topical packs for Maths 9709, Physics 9702, Chemistry 9701 and Biology 9700, read examiner notes, and study beside an AI tutor that stays out of the way.
             </p>
           </div>
 
@@ -125,10 +125,10 @@ export default function HomePage() {
         <div>
           <p className="section-kicker">The workflow</p>
           <h2 className="section-heading">
-            From topic to <em>printable</em> in one quiet loop.
+            From topic to <em>printable</em> topical pack in one quiet loop.
           </h2>
           <p className="section-copy">
-            The interface is arranged around the real exam-prep loop: search, extract, read examiner guidance, ask the tutor, then export the set.
+            The interface is arranged around the real Cambridge exam-prep loop: search past papers by topic, extract questions and mark schemes, read examiner guidance, ask the tutor, then export the topical set.
           </p>
         </div>
 
@@ -170,9 +170,9 @@ export default function HomePage() {
       <section className="site-section split-section">
         <div className="panel">
           <Files size={28} color="var(--accent-primary)" />
-          <h2 style={{ marginTop: 18, fontSize: 'clamp(1.8rem, 4vw, 3rem)' }}>Save each useful set as a reusable pack.</h2>
+          <h2 style={{ marginTop: 18, fontSize: 'clamp(1.8rem, 4vw, 3rem)' }}>Save each topical set as a reusable pack.</h2>
           <p className="section-copy" style={{ marginTop: 14 }}>
-            Your library keeps completed topic packs available so a good extraction does not disappear after one session.
+            Your AceurExam library keeps completed topical past paper packs available, so a good extraction does not disappear after one revision session.
           </p>
         </div>
 
