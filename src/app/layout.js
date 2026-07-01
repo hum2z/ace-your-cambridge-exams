@@ -3,6 +3,7 @@ import Script from 'next/script'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ScrollReveal from '@/components/ScrollReveal'
+import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 import { AuthProvider } from '@/components/AuthContext'
 
 const SITE_URL = 'https://aceurexam.com'
@@ -167,6 +168,7 @@ export default function RootLayout({ children }) {
           <main>{children}</main>
           <Footer />
           <ScrollReveal />
+          <ServiceWorkerRegister />
         </AuthProvider>
       </body>
     </html>

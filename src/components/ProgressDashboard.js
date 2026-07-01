@@ -1,9 +1,24 @@
 'use client'
 
-import { TrendingUp, Target } from 'lucide-react'
+import { TrendingUp, Target, Flame } from 'lucide-react'
 
 const RATING_LABEL = { 3: 'Nailed it', 2: 'Mostly OK', 1: 'Struggled' }
 const RATING_COLOR = { 3: '#22c55e', 2: '#f59e0b', 1: '#ef4444' }
+
+// Consecutive days with at least one practice attempt, counting back from
+// today. If nothing happened today yet, the streak still counts as "alive"
+// through the rest of the day as long as yesterday had an attempt.
+function computeStreak(attempts) {
+  const days = new Set(attempts.map(a => new Date(a.attemptedAt).toDateString()))
+  const cursor = new Date()
+  if (!days.has(cursor.toDateString())) cursor.setDate(cursor.getDate() - 1)
+  let streak = 0
+  while (days.has(cursor.toDateString())) {
+    streak += 1
+    cursor.setDate(cursor.getDate() - 1)
+  }
+  return streak
+}
 
 function groupByTopic(attempts) {
   const groups = new Map()
@@ -29,6 +44,7 @@ export default function ProgressDashboard({ quizAttempts }) {
   const topics = groupByTopic(quizAttempts)
   const overallAvg = quizAttempts.reduce((s, a) => s + a.rating, 0) / quizAttempts.length
   const weakest = [...topics].sort((a, b) => a.avgRating - b.avgRating).slice(0, 3)
+  const streak = computeStreak(quizAttempts)
 
   return (
     <section style={{ maxWidth: '900px', margin: '28px auto 0' }} className="fade-in">
@@ -50,6 +66,12 @@ export default function ProgressDashboard({ quizAttempts }) {
           <div style={{ padding: '14px 20px', background: 'rgba(255,255,255,0.03)', borderRadius: '2px', border: '1px solid rgba(255,255,255,0.06)' }}>
             <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-primary)' }}>{topics.length}</div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Topics practiced</div>
+          </div>
+          <div style={{ padding: '14px 20px', background: 'rgba(255,255,255,0.03)', borderRadius: '2px', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ fontSize: '1.6rem', fontWeight: 700, color: streak > 0 ? '#ef5a2b' : 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              {streak > 0 && <Flame size={20} color="#ef5a2b" />} {streak}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Day streak</div>
           </div>
         </div>
 

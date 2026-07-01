@@ -12,6 +12,7 @@ import PracticeSession from '@/components/PracticeSession'
 import ProgressDashboard from '@/components/ProgressDashboard'
 import RevisitReminders from '@/components/RevisitReminders'
 import ReferralPanel from '@/components/ReferralPanel'
+import ClassroomMembership from '@/components/ClassroomMembership'
 
 // Safely coerce any AI-returned value into displayable text.
 // gpt-4o-mini occasionally returns a field as an array or nested object,
@@ -454,6 +455,8 @@ export default function DashboardPage() {
         <ProgressDashboard quizAttempts={quizAttempts} />
 
         <ReferralPanel userId={user?.uid} />
+
+        <ClassroomMembership />
 
         {/* Topical Snippet Extractor Card */}
         <section id="topical-extractor-card" className="site-section fade-in" style={{ marginTop: '28px' }}>
