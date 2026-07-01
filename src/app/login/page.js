@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { AlertCircle, ArrowRight, Eye, EyeOff, Lock, LogIn, Mail, Sparkles, UserPlus } from 'lucide-react'
 import { useAuth } from '@/components/AuthContext'
 
-export default function LoginPage() {
+function LoginContent() {
   const { user, loading, loginWithGoogle, loginWithEmail, signUpWithEmail } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -29,6 +30,27 @@ export default function LoginPage() {
     setPassword('')
     setConfirmPassword('')
   }, [activeTab])
+
+  // Capture a referral link (?ref=<referrer-uid>) so AuthContext can credit
+  // both sides once the visitor actually creates an account.
+  useEffect(() => {
+    const ref = searchParams.get('ref')
+    if (ref) {
+      localStorage.setItem('pastpaper_referral_code', ref)
+      setActiveTab('signup')
+    }
+  }, [searchParams])
+
+  // Capture a teacher's classroom invite link (?classId=...&code=...) so
+  // AuthContext can join the student to it right after sign-in/sign-up.
+  useEffect(() => {
+    const classId = searchParams.get('classId')
+    const code = searchParams.get('code')
+    if (classId && code) {
+      localStorage.setItem('pastpaper_classroom_join', JSON.stringify({ classId, inviteCode: code }))
+      setActiveTab('signup')
+    }
+  }, [searchParams])
 
   const getFirebaseErrorMessage = (code) => {
     switch (code) {
@@ -247,5 +269,17 @@ export default function LoginPage() {
         </div>
       </section>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="site-page" style={{ display: 'grid', placeItems: 'center' }}>
+        <div className="spinner" style={{ border: '4px solid rgba(255,255,255,0.12)', width: 36, height: 36, borderRadius: '50%', borderLeftColor: 'var(--accent-primary)' }}></div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   )
 }

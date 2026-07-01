@@ -1,0 +1,74 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Subscriptions: users can read their own doc and create their initial
+    // trial record, but cannot grant themselves premium status directly —
+    // status/plan/expiresAt are only ever set server-side (Admin SDK, which
+    // bypasses these rules) after a verified payment or an allowlisted admin
+    // grant. Clients may only decrement their own trial-use counters.
+    match /subscriptions/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.status == 'trial';
+
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['topicalUsesRemaining', 'notesUsesRemaining', 'autoRenew']);
+
+      allow delete: if false;
+    }
+
+    // Cached source papers + saved topical compilations.
+    match /papers/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // Persisted AI tutor chat sessions — owner only.
+    match /chatSessions/{docId} {
+      allow read, update, delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Self-marked practice/quiz attempts — owner only.
+    match /quizAttempts/{docId} {
+      allow read, update, delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Referral codes: anyone signed in can read a code to redeem it or create
+    // their own; redemption bookkeeping (incrementing counters/bonuses) is
+    // only ever done server-side via the Admin SDK.
+    match /referrals/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.referrerUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // Teacher/school classrooms: the owning teacher can create/read their
+    // classroom and edit its name/seatCount request. Activation (status,
+    // expiresAt after payment) is only ever written server-side.
+    match /classrooms/{classId} {
+      allow read: if request.auth != null &&
+        (resource.data.teacherUid == request.auth.uid
+          || request.auth.uid in resource.data.get('studentUids', []));
+      allow create: if request.auth != null
+        && request.resource.data.teacherUid == request.auth.uid;
+      allow update: if request.auth != null
+        && resource.data.teacherUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['name', 'seatCount']);
+      allow delete: if false;
+    }
+  }
+}

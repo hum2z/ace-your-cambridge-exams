@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
+import { createZiinaPaymentIntent } from "@/lib/ziina";
 
-const ZIINA_API_URL = "https://api-v2.ziina.com/api/payment_intent";
 const AMOUNT_FILS = 500; // $5 USD in cents
-const CURRENCY = "USD";
 
 export async function POST(request) {
   try {
@@ -15,15 +14,6 @@ export async function POST(request) {
       );
     }
 
-    const apiKey = process.env.ZIINA_API_KEY;
-    if (!apiKey) {
-      console.error("ZIINA_API_KEY is not configured");
-      return NextResponse.json(
-        { error: "Payment service is not configured." },
-        { status: 500 }
-      );
-    }
-
     // Determine the base URL for redirects
     const origin =
       request.headers.get("origin") ||
@@ -33,40 +23,21 @@ export async function POST(request) {
     const successUrl = `${origin}/subscription/success?pi={PAYMENT_INTENT_ID}&uid=${userId}`;
     const cancelUrl = `${origin}/subscription?cancelled=true`;
 
-    const response = await fetch(ZIINA_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        amount: AMOUNT_FILS,
-        currency_code: CURRENCY,
-        message: "PastPaper Pro - 30 Day Pass",
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-        test: process.env.ZIINA_TEST_MODE !== "false", // Default to test mode
-      }),
+    const { redirectUrl, paymentIntentId } = await createZiinaPaymentIntent({
+      amountFils: AMOUNT_FILS,
+      message: "PastPaper Pro - 30 Day Pass",
+      successUrl,
+      cancelUrl,
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Ziina API error:", data);
-      return NextResponse.json(
-        { error: data.message || "Failed to create payment." },
-        { status: response.status }
-      );
-    }
-
     return NextResponse.json({
-      redirect_url: data.redirect_url,
-      payment_intent_id: data.id,
+      redirect_url: redirectUrl,
+      payment_intent_id: paymentIntentId,
     });
   } catch (error) {
     console.error("Create payment error:", error);
     return NextResponse.json(
-      { error: "An unexpected error occurred." },
+      { error: error.message || "An unexpected error occurred." },
       { status: 500 }
     );
   }

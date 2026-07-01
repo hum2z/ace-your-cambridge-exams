@@ -13,6 +13,7 @@ function SuccessContent() {
   const { user, setIsPremium, setSubscription, refreshSubscription } = useAuth()
   const [status, setStatus] = useState('verifying') // verifying | success | failed
   const [expiresAt, setExpiresAt] = useState(null)
+  const [isClassroom, setIsClassroom] = useState(false)
 
   useEffect(() => {
     // If running inside an iframe (the checkout modal), redirect the top-level parent page to this success page URL
@@ -23,6 +24,7 @@ function SuccessContent() {
 
     const pi = searchParams.get('pi')
     const uid = searchParams.get('uid')
+    const classId = searchParams.get('classId')
 
     if (!pi) {
       setStatus('failed')
@@ -31,13 +33,24 @@ function SuccessContent() {
 
     const verifyPayment = async () => {
       try {
-        const res = await fetch(`/api/verify-payment?pi=${pi}&uid=${uid}`)
+        const query = classId ? `pi=${pi}&classId=${classId}` : `pi=${pi}&uid=${uid}`
+        const res = await fetch(`/api/verify-payment?${query}`)
         const data = await res.json()
+
+        if (data.completed && classId) {
+          // Teacher bulk purchase — the classroom (not the teacher's own
+          // subscription) is what becomes active; students inherit access
+          // from it once they join via the invite link.
+          setStatus('success')
+          setExpiresAt(data.expiresAt)
+          setIsClassroom(true)
+          return
+        }
 
         if (data.completed) {
           setStatus('success')
           setExpiresAt(data.expiresAt)
-          
+
           // Instantly activate premium locally in client state to bypass any database replication lag
           setIsPremium(true)
           const newSub = {
@@ -163,14 +176,16 @@ function SuccessContent() {
         borderRadius: '2px', padding: '8px 12px', color: '#ef5a2b',
         fontSize: '0.8rem', fontWeight: '800', marginBottom: '20px'
       }}>
-        <Sparkles size={12} /> PREMIUM ACTIVATED
+        <Sparkles size={12} /> {isClassroom ? 'CLASSROOM ACTIVATED' : 'PREMIUM ACTIVATED'}
       </div>
 
       <h2 style={{ fontSize: '2.2rem', color: 'var(--text-primary)', marginBottom: '12px', letterSpacing: '0' }}>
-        Welcome to Pro!
+        {isClassroom ? 'Your classroom is live!' : 'Welcome to Pro!'}
       </h2>
       <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.7', maxWidth: '440px', margin: '0 auto 16px' }}>
-        Your Pro Study Pass is now active. You have full unlimited access to all Past Paper tools, AI Tutor sessions, and examiner reports.
+        {isClassroom
+          ? 'Your seats are active. Head to your teacher dashboard to copy the invite link and share it with your students.'
+          : 'Your Pro Study Pass is now active. You have full unlimited access to all Past Paper tools, AI Tutor sessions, and examiner reports.'}
       </p>
 
       {expDate && (
@@ -180,6 +195,7 @@ function SuccessContent() {
       )}
 
       {/* Feature summary */}
+      {!isClassroom && (
       <div style={{
         background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: '2px', padding: '24px', maxWidth: '380px', margin: '0 auto 30px',
@@ -192,14 +208,15 @@ function SuccessContent() {
           </div>
         ))}
       </div>
+      )}
 
       <button
-        onClick={() => router.push('/')}
+        onClick={() => router.push(isClassroom ? '/teacher' : '/')}
         className="btn-premium"
         style={{ padding: '14px 32px' }}
         id="success-goto-dashboard"
       >
-        <ArrowRight size={18} /> Go to Study Dashboard
+        <ArrowRight size={18} /> {isClassroom ? 'Go to Teacher Dashboard' : 'Go to Study Dashboard'}
       </button>
     </div>
   )

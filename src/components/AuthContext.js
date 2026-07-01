@@ -1,8 +1,45 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { auth, googleProvider, getSubscription, isSubscriptionActive, saveSubscription } from '@/lib/firebase'
-import { signInWithPopup, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
+import { auth, googleProvider, getSubscription, isSubscriptionActive, saveSubscription, getClassroom, isClassroomActive } from '@/lib/firebase'
+import { signInWithPopup, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, getAdditionalUserInfo } from 'firebase/auth'
+
+const REFERRAL_STORAGE_KEY = 'pastpaper_referral_code'
+const CLASSROOM_JOIN_STORAGE_KEY = 'pastpaper_classroom_join'
+
+async function redeemReferralIfPresent(newUserUid) {
+  if (typeof window === 'undefined') return
+  const referrerUid = localStorage.getItem(REFERRAL_STORAGE_KEY)
+  if (!referrerUid || referrerUid === newUserUid) return
+  localStorage.removeItem(REFERRAL_STORAGE_KEY)
+  try {
+    await fetch('/api/referral/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newUserUid, referrerUid }),
+    })
+  } catch (err) {
+    console.warn('Referral redemption failed:', err)
+  }
+}
+
+async function joinClassroomIfPresent(uid) {
+  if (typeof window === 'undefined') return
+  const raw = localStorage.getItem(CLASSROOM_JOIN_STORAGE_KEY)
+  if (!raw) return
+  localStorage.removeItem(CLASSROOM_JOIN_STORAGE_KEY)
+  try {
+    const { classId, inviteCode } = JSON.parse(raw)
+    if (!classId || !inviteCode) return
+    await fetch('/api/classroom/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid, classId, inviteCode }),
+    })
+  } catch (err) {
+    console.warn('Classroom join failed:', err)
+  }
+}
 
 const AuthContext = createContext({
   user: null,
@@ -57,13 +94,25 @@ export function AuthProvider({ children }) {
     try {
       const sub = await getSubscription(userId)
       if (sub) {
-        setSubscription(sub)
-        const active = isSubscriptionActive(sub)
+        let effectiveSub = sub
+        let active = isSubscriptionActive(sub)
+
+        // Students who joined a teacher's classroom inherit premium access
+        // from the classroom's active status rather than their own doc.
+        if (!active && sub.classroomId) {
+          const classroom = await getClassroom(sub.classroomId)
+          if (isClassroomActive(classroom)) {
+            active = true
+            effectiveSub = { ...sub, status: 'active', expiresAt: classroom.expiresAt, viaClassroom: true }
+          }
+        }
+
+        setSubscription(effectiveSub)
         setIsPremium(active)
-        
+
         if (typeof window !== 'undefined') {
           if (active) {
-            localStorage.setItem(`pastpaper_subscription_${userId}`, JSON.stringify(sub))
+            localStorage.setItem(`pastpaper_subscription_${userId}`, JSON.stringify(effectiveSub))
           } else {
             localStorage.removeItem(`pastpaper_subscription_${userId}`)
           }
@@ -114,6 +163,10 @@ export function AuthProvider({ children }) {
     try {
       setLoading(true)
       const result = await signInWithPopup(auth, googleProvider)
+      if (getAdditionalUserInfo(result)?.isNewUser) {
+        await redeemReferralIfPresent(result.user.uid)
+      }
+      await joinClassroomIfPresent(result.user.uid)
       return result.user
     } catch (error) {
       console.error("Error signing in with Google:", error)
@@ -127,6 +180,7 @@ export function AuthProvider({ children }) {
     try {
       setLoading(true)
       const result = await signInWithEmailAndPassword(auth, email, password)
+      await joinClassroomIfPresent(result.user.uid)
       return result.user
     } catch (error) {
       console.error("Error signing in with email:", error)
@@ -161,8 +215,10 @@ export function AuthProvider({ children }) {
         console.error('Failed to create trial subscription:', subError)
       }
 
-      setSubscription(trialSub)
-      setIsPremium(false)
+      await redeemReferralIfPresent(newUser.uid)
+      await joinClassroomIfPresent(newUser.uid)
+      // Re-fetch so any referral/classroom bonus applied server-side is reflected immediately.
+      await refreshSubscription(newUser.uid)
 
       return newUser
     } catch (error) {

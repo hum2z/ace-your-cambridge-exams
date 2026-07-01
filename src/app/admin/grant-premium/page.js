@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthContext";
-import { doc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 export default function GrantPremiumPage() {
   const { user, loginWithGoogle } = useAuth();
@@ -31,23 +29,24 @@ export default function GrantPremiumPage() {
       try {
         setStatus("writing");
 
-        const subscriptionData = {
-          status: "active",
-          plan: "premium",
-          startDate: "2026-01-01",
-          endDate: "2099-12-31",
-          expiresAt: "2099-12-31T23:59:59.000Z",
-          createdAt: new Date().toISOString(),
-          grantedManually: true,
-        };
+        const idToken = await user.getIdToken();
+        const response = await fetch("/api/admin/grant-premium", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+        });
+        const data = await response.json();
 
-        const docRef = doc(db, "subscriptions", user.uid);
-        await setDoc(docRef, subscriptionData, { merge: true });
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to grant premium access.");
+        }
 
-        // Also cache in localStorage
+        // Cache in localStorage so the client picks it up immediately
         localStorage.setItem(
           `pastpaper_subscription_${user.uid}`,
-          JSON.stringify(subscriptionData)
+          JSON.stringify(data.subscription)
         );
 
         setStatus("done");

@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { Search, Cpu, Send, ChevronDown, ChevronUp, MessageSquare, Plus, X, Sparkles, Printer, Layers, BookCopy, CheckSquare, Square, FileText, Download, Calendar, Loader } from 'lucide-react'
-import { askTutor } from '@/lib/gemini'
+import { askTutor } from '@/lib/aiTutor'
 import { PAPER_YEARS } from '@/lib/paperService'
 import PremiumGate from '@/components/PremiumGate'
 import { useAuth } from '@/components/AuthContext'
-import { saveTopicalToFirebase, getSavedTopicals, deleteTopicalFromFirebase } from '@/lib/firebase'
-import { Trash2 } from 'lucide-react'
+import { saveTopicalToFirebase, getSavedTopicals, deleteTopicalFromFirebase, getChatSessions, createChatSession, updateChatSession, getQuizAttempts } from '@/lib/firebase'
+import { Trash2, GraduationCap } from 'lucide-react'
+import PracticeSession from '@/components/PracticeSession'
+import ProgressDashboard from '@/components/ProgressDashboard'
+import RevisitReminders from '@/components/RevisitReminders'
+import ReferralPanel from '@/components/ReferralPanel'
 
 // Safely coerce any AI-returned value into displayable text.
 // gpt-4o-mini occasionally returns a field as an array or nested object,
@@ -80,17 +84,52 @@ export default function DashboardPage() {
     loadSaved()
   }, [user])
 
-  // Chat History Sidebar states
-  const [chatSessions, setChatSessions] = useState([
-    {
-      id: 'session-default',
-      title: 'AS/A-Level General Study',
-      messages: [{ role: 'tutor', text: 'Hi! I am your AI tutor. Ask me any syllabus questions or open my session history list to start a new chat!' }]
-    }
-  ])
-  const [activeSessionId, setActiveSessionId] = useState('session-default')
+  // Practice/quiz-attempt state (self-marked) — feeds the progress dashboard
+  // and revisit reminders below.
+  const [quizAttempts, setQuizAttempts] = useState([])
+  const [practicingTopical, setPracticingTopical] = useState(null)
+
+  const reloadQuizAttempts = async () => {
+    if (!user) return
+    const data = await getQuizAttempts(user.uid)
+    setQuizAttempts(data)
+  }
+
+  useEffect(() => {
+    reloadQuizAttempts()
+  }, [user])
+
+  // Chat History Sidebar states — persisted to Firestore per-user so history
+  // survives refresh/device change instead of living only in local state.
+  const [chatSessions, setChatSessions] = useState([])
+  const [activeSessionId, setActiveSessionId] = useState(null)
   const [tutorSidebarOpen, setTutorSidebarOpen] = useState(false)
   const [showHistoryList, setShowHistoryList] = useState(false)
+  const [loadingChats, setLoadingChats] = useState(false)
+
+  useEffect(() => {
+    async function loadChats() {
+      if (!user) return
+      setLoadingChats(true)
+      try {
+        const sessions = await getChatSessions(user.uid)
+        if (sessions.length === 0) {
+          const defaultMessages = [{ role: 'tutor', text: 'Hi! I am your AI tutor. Ask me any syllabus questions or open my session history list to start a new chat!' }]
+          const newId = await createChatSession(user.uid, 'AS/A-Level General Study', defaultMessages)
+          setChatSessions([{ id: newId || 'session-default', title: 'AS/A-Level General Study', messages: defaultMessages }])
+          setActiveSessionId(newId || 'session-default')
+        } else {
+          setChatSessions(sessions)
+          setActiveSessionId(sessions[0].id)
+        }
+      } catch (err) {
+        console.error('Error loading chat sessions:', err)
+      } finally {
+        setLoadingChats(false)
+      }
+    }
+    loadChats()
+  }, [user])
 
   // Syllabus Insights tabs
   const [activeInsightTab, setActiveInsightTab] = useState('repeated')
@@ -132,68 +171,49 @@ export default function DashboardPage() {
   const activeSession = chatSessions.find(s => s.id === activeSessionId) || chatSessions[0]
   const chatMessages = activeSession ? activeSession.messages : []
 
-  const handleCreateNewChat = () => {
-    const newId = `session-${Date.now()}`
+  const handleCreateNewChat = async () => {
     const newTitle = subjectCode ? `${subjectCode} Exam Prep` : 'New Chat Session'
-    const newSession = {
-      id: newId,
-      title: newTitle,
-      messages: [{ role: 'tutor', text: `Hi! I am your AI tutor. Let's study and tackle doubts together!` }]
-    }
+    const messages = [{ role: 'tutor', text: `Hi! I am your AI tutor. Let's study and tackle doubts together!` }]
+    const newId = user ? await createChatSession(user.uid, newTitle, messages) : null
+    const newSession = { id: newId || `session-${Date.now()}`, title: newTitle, messages }
     setChatSessions(prev => [newSession, ...prev])
-    setActiveSessionId(newId)
+    setActiveSessionId(newSession.id)
     setShowHistoryList(false)
     showToast('Started new chat session!', 'success')
   }
 
   const handleSendMessage = async (e) => {
     e.preventDefault()
-    if (!chatInput) return
+    if (!chatInput || !activeSession) return
 
     const userMsg = { role: 'user', text: chatInput }
+    let title = activeSession.title
+    if (title === 'New Chat Session' || title === 'AS/A-Level General Study') {
+      title = chatInput.slice(0, 25) + (chatInput.length > 25 ? '...' : '')
+    }
+    const messagesWithUser = [...activeSession.messages, userMsg]
 
-    // Append user message
-    setChatSessions(prev => prev.map(session => {
-      if (session.id === activeSessionId) {
-        let title = session.title
-        if (title === 'New Chat Session' || title === 'AS/A-Level General Study') {
-          title = chatInput.slice(0, 25) + (chatInput.length > 25 ? '...' : '')
-        }
-        return {
-          ...session,
-          title,
-          messages: [...session.messages, userMsg]
-        }
-      }
-      return session
-    }))
+    setChatSessions(prev => prev.map(session =>
+      session.id === activeSessionId ? { ...session, title, messages: messagesWithUser } : session
+    ))
+    updateChatSession(activeSessionId, { title, messages: messagesWithUser })
 
     const currentInput = chatInput
     setChatInput('')
 
+    let finalMessages
     try {
       const response = await askTutor(currentInput, `Subject: ${subjectCode || 'General Cambridge Study'}`)
-      setChatSessions(prev => prev.map(session => {
-        if (session.id === activeSessionId) {
-          return {
-            ...session,
-            messages: [...session.messages, { role: 'tutor', text: response }]
-          }
-        }
-        return session
-      }))
+      finalMessages = [...messagesWithUser, { role: 'tutor', text: response }]
     } catch (error) {
       console.error("Tutor Ask Error:", error)
-      setChatSessions(prev => prev.map(session => {
-        if (session.id === activeSessionId) {
-          return {
-            ...session,
-            messages: [...session.messages, { role: 'tutor', text: 'Sorry, I failed to process your question. Make sure your API key is correctly configured.' }]
-          }
-        }
-        return session
-      }))
+      finalMessages = [...messagesWithUser, { role: 'tutor', text: 'Sorry, I failed to process your question. Make sure your API key is correctly configured.' }]
     }
+
+    setChatSessions(prev => prev.map(session =>
+      session.id === activeSessionId ? { ...session, title, messages: finalMessages } : session
+    ))
+    updateChatSession(activeSessionId, { title, messages: finalMessages })
   }
 
   // Examiner Notes state
@@ -419,6 +439,12 @@ export default function DashboardPage() {
             Extract topical questions, generate examiner notes, compile yearly PDFs, and keep the tutor one tap away.
           </p>
         </section>
+
+        <RevisitReminders quizAttempts={quizAttempts} savedTopicals={savedTopicals} onPractice={setPracticingTopical} />
+
+        <ProgressDashboard quizAttempts={quizAttempts} />
+
+        <ReferralPanel userId={user?.uid} />
 
         {/* Topical Snippet Extractor Card */}
         <section id="topical-extractor-card" className="site-section fade-in" style={{ marginTop: '28px' }}>
@@ -691,6 +717,26 @@ export default function DashboardPage() {
                     </div>
 
                     <div style={{ display: 'flex', gap: '10px' }}>
+                      {topical.qpUrl && (
+                        <button
+                          onClick={() => setPracticingTopical(topical)}
+                          style={{
+                            background: 'rgba(34, 197, 94, 0.12)',
+                            border: '1px solid rgba(34, 197, 94, 0.25)',
+                            color: '#22c55e',
+                            borderRadius: '2px',
+                            padding: '8px 14px',
+                            fontSize: '0.8rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <GraduationCap size={12} /> Practice
+                        </button>
+                      )}
                       {topical.qpUrl && (
                         <button
                           onClick={() => downloadFile(topical.qpUrl, `${topical.subjectCode}_${topical.topic.replace(/\s+/g, '_')}_Questions.pdf`)}
@@ -1014,7 +1060,7 @@ export default function DashboardPage() {
           {/* Main active chat area inside sidebar */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', marginTop: '10px' }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              Active: {activeSession.title}
+              Active: {activeSession ? activeSession.title : (loadingChats ? 'Loading...' : 'No chat yet')}
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', marginBottom: '15px', paddingRight: '5px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1072,6 +1118,15 @@ export default function DashboardPage() {
           }}>
             {toast.message}
           </div>
+        )}
+
+        {practicingTopical && (
+          <PracticeSession
+            topical={practicingTopical}
+            userId={user?.uid}
+            onClose={() => setPracticingTopical(null)}
+            onSaved={reloadQuizAttempts}
+          />
         )}
       </div>
     </PremiumGate>

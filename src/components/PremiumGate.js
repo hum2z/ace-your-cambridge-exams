@@ -29,6 +29,23 @@ export default function PremiumGate({ children }) {
 
   if (!user) return null
 
+  const daysLeft = subscription?.expiresAt
+    ? Math.ceil((new Date(subscription.expiresAt) - new Date()) / (1000 * 60 * 60 * 24))
+    : null
+
+  if (isPremium && subscription?.pendingRenewalUrl && daysLeft !== null && daysLeft <= 3) {
+    return (
+      <>
+        <div style={{ background: 'rgba(239, 90, 43, 0.12)', borderBottom: '1px solid rgba(239, 90, 43, 0.25)', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', flexWrap: 'wrap', fontSize: '0.85rem', color: '#ef5a2b', fontWeight: 600 }}>
+          <Crown size={14} />
+          <span>Premium renews in {daysLeft} day{daysLeft !== 1 ? 's' : ''}</span>
+          <a href={subscription.pendingRenewalUrl} style={{ color: 'var(--accent-primary)', textDecoration: 'underline' }}>Renew now</a>
+        </div>
+        {children}
+      </>
+    )
+  }
+
   if (isTrial) {
     const topicalLeft = subscription?.topicalUsesRemaining ?? 0
     const notesLeft = subscription?.notesUsesRemaining ?? 0

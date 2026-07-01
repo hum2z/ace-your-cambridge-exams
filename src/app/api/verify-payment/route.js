@@ -1,22 +1,12 @@
 import { NextResponse } from "next/server";
-import { initializeApp, getApps, cert } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
-
-// Initialize Firebase Admin (server-side)
-function getAdminDb() {
-  if (getApps().length === 0) {
-    initializeApp({
-      projectId: "studio-8021146580-c5c2b",
-    });
-  }
-  return getFirestore();
-}
+import { getAdminDb } from "@/lib/firebaseAdmin";
 
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const paymentIntentId = searchParams.get("pi");
     const userId = searchParams.get("uid");
+    const classId = searchParams.get("classId");
 
     if (!paymentIntentId) {
       return NextResponse.json(
@@ -56,30 +46,46 @@ export async function GET(request) {
 
     const isCompleted = paymentData.status === "completed";
 
-    // If payment is completed and we have a userId, update Firestore
-    if (isCompleted && userId) {
+    // If payment is completed, activate the relevant record in Firestore —
+    // either an individual subscription, or (for teacher bulk purchases) the
+    // classroom itself, whose active status all of its students inherit.
+    if (isCompleted && (userId || classId)) {
       try {
         const db = getAdminDb();
         const now = new Date();
         const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
-        await db
-          .collection("subscriptions")
-          .doc(userId)
-          .set(
-            {
-              status: "active",
-              paymentIntentId: paymentIntentId,
-              activatedAt: now.toISOString(),
-              expiresAt: expiresAt.toISOString(),
-              updatedAt: now.toISOString(),
-            },
-            { merge: true }
-          );
-
-        console.log(
-          `Subscription activated for user ${userId}, expires ${expiresAt.toISOString()}`
-        );
+        if (classId) {
+          await db
+            .collection("classrooms")
+            .doc(classId)
+            .set(
+              {
+                status: "active",
+                paymentIntentId,
+                activatedAt: now.toISOString(),
+                expiresAt: expiresAt.toISOString(),
+                updatedAt: now.toISOString(),
+              },
+              { merge: true }
+            );
+          console.log(`Classroom ${classId} activated, expires ${expiresAt.toISOString()}`);
+        } else {
+          await db
+            .collection("subscriptions")
+            .doc(userId)
+            .set(
+              {
+                status: "active",
+                paymentIntentId,
+                activatedAt: now.toISOString(),
+                expiresAt: expiresAt.toISOString(),
+                updatedAt: now.toISOString(),
+              },
+              { merge: true }
+            );
+          console.log(`Subscription activated for user ${userId}, expires ${expiresAt.toISOString()}`);
+        }
       } catch (dbError) {
         console.error("Firestore update error:", dbError);
         // Don't fail the response — payment was still verified

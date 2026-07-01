@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertCircle, Check, ChevronDown, CreditCard, Crown, Shield, Zap } from 'lucide-react'
+import { AlertCircle, Check, ChevronDown, CreditCard, Crown, RefreshCw, Shield, Zap } from 'lucide-react'
 import { useAuth } from '@/components/AuthContext'
 import { subscriptionFaqs as faqs } from '@/lib/faqs'
+import { saveSubscription } from '@/lib/firebase'
 
 const features = [
   'Unlimited topical snippet extractions',
@@ -15,16 +16,29 @@ const features = [
 ]
 
 export default function SubscriptionPage() {
-  const { user, isPremium, subscription } = useAuth()
+  const { user, isPremium, subscription, setSubscription } = useAuth()
   const router = useRouter()
   const [processing, setProcessing] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [openFaq, setOpenFaq] = useState(null)
+  const [togglingAutoRenew, setTogglingAutoRenew] = useState(false)
 
   const isCancelled = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('cancelled')
   const daysRemaining = subscription?.expiresAt
     ? Math.max(0, Math.ceil((new Date(subscription.expiresAt) - new Date()) / (1000 * 60 * 60 * 24)))
     : 0
+
+  const handleToggleAutoRenew = async () => {
+    if (!user || togglingAutoRenew) return
+    const next = !subscription?.autoRenew
+    setTogglingAutoRenew(true)
+    try {
+      await saveSubscription(user.uid, { autoRenew: next })
+      setSubscription(prev => ({ ...prev, autoRenew: next }))
+    } finally {
+      setTogglingAutoRenew(false)
+    }
+  }
 
   const handleActivatePremium = async () => {
     setErrorMsg('')
@@ -100,6 +114,29 @@ export default function SubscriptionPage() {
                 </div>
               )}
             </div>
+          )}
+
+          {isPremium && subscription?.pendingRenewalUrl && daysRemaining <= 3 && (
+            <div className="tool-row" style={{ marginTop: 16, borderColor: 'rgba(239, 90, 43, 0.4)' }}>
+              <RefreshCw size={16} color="#ef5a2b" />
+              <span style={{ color: '#ef5a2b', fontWeight: 700 }}>Your pass renews soon.</span>
+              <a href={subscription.pendingRenewalUrl} style={{ color: 'var(--accent-primary)', fontWeight: 700, textDecoration: 'underline' }}>
+                Renew now →
+              </a>
+            </div>
+          )}
+
+          {isPremium && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              <input
+                type="checkbox"
+                checked={!!subscription?.autoRenew}
+                disabled={togglingAutoRenew}
+                onChange={handleToggleAutoRenew}
+                style={{ width: 16, height: 16, cursor: 'pointer' }}
+              />
+              Remind me to renew a few days before expiry (Ziina doesn't support silent auto-charging — you'll get a one-click renewal link here).
+            </label>
           )}
 
           <ul className="feature-list">

@@ -1,5 +1,5 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
-import { getFirestore, collection, addDoc, doc, getDoc, setDoc, deleteDoc, query, where, getDocs } from "firebase/firestore";
+import { getFirestore, collection, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, getDocs } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
@@ -147,6 +147,165 @@ export const deleteTopicalFromFirebase = async (topicalId) => {
     console.error("Error deleting topical from Firestore:", error);
     return false;
   }
+};
+
+// --- AI Tutor chat persistence ---
+
+export const getChatSessions = async (userId) => {
+  if (!db || !userId) return [];
+  try {
+    const q = query(collection(db, "chatSessions"), where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
+    const sessions = [];
+    querySnapshot.forEach((docSnap) => {
+      sessions.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    return sessions.sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+  } catch (error) {
+    console.error("Error fetching chat sessions:", error);
+    return [];
+  }
+};
+
+export const createChatSession = async (userId, title, messages) => {
+  if (!db || !userId) return null;
+  try {
+    const now = new Date().toISOString();
+    const docRef = await addDoc(collection(db, "chatSessions"), {
+      userId,
+      title,
+      messages,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error("Error creating chat session:", error);
+    return null;
+  }
+};
+
+export const updateChatSession = async (sessionId, data) => {
+  if (!db || !sessionId) return false;
+  try {
+    await updateDoc(doc(db, "chatSessions", sessionId), {
+      ...data,
+      updatedAt: new Date().toISOString(),
+    });
+    return true;
+  } catch (error) {
+    console.error("Error updating chat session:", error);
+    return false;
+  }
+};
+
+// --- Practice/quiz attempts (self-marked) ---
+
+export const saveQuizAttempt = async (userId, attempt) => {
+  if (!db || !userId) return null;
+  try {
+    const docRef = await addDoc(collection(db, "quizAttempts"), {
+      userId,
+      subjectCode: attempt.subjectCode,
+      topic: attempt.topic,
+      topicalId: attempt.topicalId || null,
+      rating: attempt.rating, // 1 (struggled) - 3 (nailed it)
+      attemptedAt: new Date().toISOString(),
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error("Error saving quiz attempt:", error);
+    return null;
+  }
+};
+
+export const getQuizAttempts = async (userId) => {
+  if (!db || !userId) return [];
+  try {
+    const q = query(collection(db, "quizAttempts"), where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
+    const attempts = [];
+    querySnapshot.forEach((docSnap) => {
+      attempts.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    return attempts.sort((a, b) => new Date(b.attemptedAt) - new Date(a.attemptedAt));
+  } catch (error) {
+    console.error("Error fetching quiz attempts:", error);
+    return [];
+  }
+};
+
+// --- Referrals ---
+
+export const getReferralCount = async (userId) => {
+  if (!db || !userId) return 0;
+  try {
+    const q = query(collection(db, "referrals"), where("referrerUid", "==", userId));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.size;
+  } catch (error) {
+    console.error("Error fetching referral count:", error);
+    return 0;
+  }
+};
+
+// --- Teacher/school classrooms (per-seat bulk pricing) ---
+
+const PRICE_PER_SEAT_FILS = 300; // $3 USD per seat / 30 days (bulk discount vs $5 individual)
+
+function generateInviteCode() {
+  return Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+
+export const createClassroom = async (teacherUid, name, seatCount) => {
+  if (!db || !teacherUid) return null;
+  try {
+    const docRef = await addDoc(collection(db, "classrooms"), {
+      teacherUid,
+      name,
+      seatCount,
+      pricePerSeatFils: PRICE_PER_SEAT_FILS,
+      inviteCode: generateInviteCode(),
+      status: "pending",
+      studentUids: [],
+      createdAt: new Date().toISOString(),
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error("Error creating classroom:", error);
+    return null;
+  }
+};
+
+export const getClassroomForTeacher = async (teacherUid) => {
+  if (!db || !teacherUid) return null;
+  try {
+    const q = query(collection(db, "classrooms"), where("teacherUid", "==", teacherUid));
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) return null;
+    const docSnap = querySnapshot.docs[0];
+    return { id: docSnap.id, ...docSnap.data() };
+  } catch (error) {
+    console.error("Error fetching classroom:", error);
+    return null;
+  }
+};
+
+export const getClassroom = async (classId) => {
+  if (!db || !classId) return null;
+  try {
+    const docSnap = await getDoc(doc(db, "classrooms", classId));
+    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+  } catch (error) {
+    console.error("Error fetching classroom:", error);
+    return null;
+  }
+};
+
+export const isClassroomActive = (classroom) => {
+  if (!classroom || classroom.status !== "active") return false;
+  if (!classroom.expiresAt) return false;
+  return new Date(classroom.expiresAt) > new Date();
 };
 
 export const getSavedTopicals = async (userId) => {

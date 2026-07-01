@@ -1,16 +1,5 @@
 import { NextResponse } from "next/server";
-import { initializeApp, getApps } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
-
-// Initialize Firebase Admin (server-side)
-function getAdminDb() {
-  if (getApps().length === 0) {
-    initializeApp({
-      projectId: "studio-8021146580-c5c2b",
-    });
-  }
-  return getFirestore();
-}
+import { getAdminDb } from "@/lib/firebaseAdmin";
 
 export async function GET(request) {
   try {
