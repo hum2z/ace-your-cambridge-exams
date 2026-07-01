@@ -138,6 +138,19 @@ export const saveTopicalToFirebase = async (userId, topical) => {
   }
 };
 
+// Persist revision progress (status: 'attempted' | 'done' | null, score: string)
+// on a saved topical without touching its other fields.
+export const updateTopicalProgress = async (topicalId, progress) => {
+  if (!db || !topicalId) return false;
+  try {
+    await setDoc(doc(db, "papers", topicalId), progress, { merge: true });
+    return true;
+  } catch (error) {
+    console.error("Error updating topical progress:", error);
+    return false;
+  }
+};
+
 export const deleteTopicalFromFirebase = async (topicalId) => {
   if (!db || !topicalId) return false;
   try {

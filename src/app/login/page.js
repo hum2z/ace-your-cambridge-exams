@@ -6,7 +6,7 @@ import { AlertCircle, ArrowRight, Eye, EyeOff, Lock, LogIn, Mail, Sparkles, User
 import { useAuth } from '@/components/AuthContext'
 
 export default function LoginPage() {
-  const { user, loading, loginWithGoogle, loginWithEmail, signUpWithEmail } = useAuth()
+  const { user, loading, loginWithGoogle, loginWithEmail, signUpWithEmail, resetPassword } = useAuth()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('login')
   const [email, setEmail] = useState('')
@@ -45,6 +45,8 @@ export default function LoginPage() {
         return 'Incorrect email or password. Please try again.'
       case 'auth/too-many-requests':
         return 'Too many failed attempts. Please wait a moment and try again.'
+      case 'auth/missing-email':
+        return 'Enter your email address first, then tap "Forgot password?".'
       default:
         return 'Authentication failed. Please try again.'
     }
@@ -84,9 +86,26 @@ export default function LoginPage() {
       setProcessing(true)
       setErrorMsg('')
       await signUpWithEmail(email, password)
-      setSuccessMsg('Account created. Redirecting...')
+      setSuccessMsg('Account created — we sent a verification link to your email. Redirecting...')
     } catch (err) {
       setErrorMsg(getFirebaseErrorMessage(err.code))
+      setProcessing(false)
+    }
+  }
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setErrorMsg('Enter your email address first, then tap "Forgot password?".')
+      return
+    }
+    try {
+      setProcessing(true)
+      setErrorMsg('')
+      await resetPassword(email)
+      setSuccessMsg(`Password reset link sent to ${email}. Check your inbox (and spam folder).`)
+    } catch (err) {
+      setErrorMsg(getFirebaseErrorMessage(err.code))
+    } finally {
       setProcessing(false)
     }
   }
@@ -196,6 +215,18 @@ export default function LoginPage() {
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </label>
+
+            {activeTab === 'login' && (
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={processing}
+                id="forgot-password-btn"
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent-primary)', fontSize: '0.82rem', fontWeight: 700, justifySelf: 'end' }}
+              >
+                Forgot password?
+              </button>
+            )}
 
             {activeTab === 'signup' && (
               <label style={{ position: 'relative' }}>

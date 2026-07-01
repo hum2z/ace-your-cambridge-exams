@@ -81,6 +81,16 @@ const EDEXCEL_UNIT_MAP = {
   'WGE02': 'geography-unit-2',
 };
 
+// Flat, searchable list of every known subject — powers the dashboard picker.
+export const SUBJECT_LIST = [
+  ...Object.entries(SUBJECT_MAP).map(([code, { level, name }]) => ({ code, level, name })),
+  ...Object.entries(EDEXCEL_UNIT_MAP).map(([code, slug]) => ({
+    code,
+    level: 'Edexcel IAL',
+    name: slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') + ` (${code})`,
+  })),
+];
+
 const dayRange = (start, end) =>
   Array.from({ length: end - start + 1 }, (_, i) => String(i + start).padStart(2, '0'));
 

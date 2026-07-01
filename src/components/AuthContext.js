@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { auth, googleProvider, getSubscription, isSubscriptionActive, saveSubscription } from '@/lib/firebase'
-import { signInWithPopup, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
+import { signInWithPopup, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification } from 'firebase/auth'
 
 const AuthContext = createContext({
   user: null,
@@ -142,6 +142,11 @@ export function AuthProvider({ children }) {
       const result = await createUserWithEmailAndPassword(auth, email, password)
       const newUser = result.user
 
+      // Fire-and-forget: verification failing should never block signup.
+      sendEmailVerification(newUser).catch((err) =>
+        console.error('Failed to send verification email:', err)
+      )
+
       // Grant a limited trial: 1 topical extraction + 1 notes generation.
       // status is 'trial' (NOT 'active') so isSubscriptionActive/isPremium stay false.
       const now = new Date()
@@ -188,6 +193,10 @@ export function AuthProvider({ children }) {
     return true
   }, [user, subscription])
 
+  const resetPassword = async (email) => {
+    await sendPasswordResetEmail(auth, email)
+  }
+
   const logout = async () => {
     try {
       setLoading(true)
@@ -204,7 +213,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, isPremium, isTrial, subscription, setIsPremium, setSubscription, loginWithGoogle, loginWithEmail, signUpWithEmail, logout, refreshSubscription, consumeTrialUse }}>
+    <AuthContext.Provider value={{ user, loading, isPremium, isTrial, subscription, setIsPremium, setSubscription, loginWithGoogle, loginWithEmail, signUpWithEmail, resetPassword, logout, refreshSubscription, consumeTrialUse }}>
       {children}
     </AuthContext.Provider>
   )

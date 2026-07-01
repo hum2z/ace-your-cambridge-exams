@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Search, Cpu, Send, ChevronDown, ChevronUp, MessageSquare, Plus, X, Sparkles, Printer, Layers, BookCopy, CheckSquare, Square, FileText, Download, Calendar, Loader } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Search, Cpu, Send, ChevronDown, ChevronUp, MessageSquare, Plus, X, Sparkles, Printer, Layers, BookCopy, CheckSquare, Square, FileText, Download, Calendar, Loader, Eye, ExternalLink } from 'lucide-react'
 import { askTutor } from '@/lib/gemini'
 import { PAPER_YEARS } from '@/lib/paperService'
 import PremiumGate from '@/components/PremiumGate'
 import { useAuth } from '@/components/AuthContext'
-import { saveTopicalToFirebase, getSavedTopicals, deleteTopicalFromFirebase } from '@/lib/firebase'
+import { saveTopicalToFirebase, getSavedTopicals, deleteTopicalFromFirebase, updateTopicalProgress } from '@/lib/firebase'
+import { SubjectPicker, TopicPicker } from '@/components/SubjectTopicPickers'
 import { Trash2 } from 'lucide-react'
 
 // Safely coerce any AI-returned value into displayable text.
@@ -58,6 +59,60 @@ export default function DashboardPage() {
   const [extracting, setExtracting] = useState(false)
   const [extractStatus, setExtractStatus] = useState('')
   const [extractedFiles, setExtractedFiles] = useState(null)
+
+  // Available paper options (years / paper numbers / variants that actually
+  // exist at the source) discovered per subject via /api/paper-options.
+  const [paperOptions, setPaperOptions] = useState(null)
+  const [loadingOptions, setLoadingOptions] = useState(false)
+  const optionsCache = useRef({})
+
+  const loadPaperOptions = async (code) => {
+    const cleanCode = code.trim()
+    if (!cleanCode) return
+    if (optionsCache.current[cleanCode]) {
+      setPaperOptions(optionsCache.current[cleanCode])
+      return
+    }
+    setLoadingOptions(true)
+    setPaperOptions(null)
+    try {
+      const res = await fetch(`/api/paper-options?subjectCode=${encodeURIComponent(cleanCode)}`)
+      if (!res.ok) throw new Error('Options lookup failed')
+      const data = await res.json()
+      if (data.years?.length) {
+        optionsCache.current[cleanCode] = data
+        setPaperOptions(data)
+        // Drop selections that don't exist for this subject
+        setSelectedYears(prev => {
+          const kept = prev.filter(y => data.years.includes(y))
+          return kept.length ? kept : data.years.slice(0, 2)
+        })
+        setPaperType(prev => (prev && !data.paperNumbers.includes(Number(prev)) ? '' : prev))
+        setVariantType(prev => (prev && !data.variants.includes(Number(prev)) ? '' : prev))
+      }
+    } catch (err) {
+      // Fall back silently to the full year range — extraction still prunes misses
+      console.warn('Could not load paper options:', err)
+    } finally {
+      setLoadingOptions(false)
+    }
+  }
+
+  const handleSubjectPicked = (code) => {
+    setSubjectCode(code)
+    loadPaperOptions(code)
+  }
+
+  // PDF preview modal: { title, docs: [{ label, url }] } or null
+  const [previewDoc, setPreviewDoc] = useState(null)
+  const [previewIndex, setPreviewIndex] = useState(0)
+
+  const openPreview = (title, docs) => {
+    const available = docs.filter(d => d.url)
+    if (!available.length) return
+    setPreviewIndex(0)
+    setPreviewDoc({ title, docs: available })
+  }
 
   // Saved Topicals state
   const [savedTopicals, setSavedTopicals] = useState([])
@@ -334,6 +389,17 @@ export default function DashboardPage() {
     }
   };
 
+  // Optimistically save revision progress (status / score) on a library item.
+  const handleProgressChange = async (topical, fields) => {
+    const prev = savedTopicals
+    setSavedTopicals(prev.map(t => (t.id === topical.id ? { ...t, ...fields } : t)))
+    const ok = await updateTopicalProgress(topical.id, fields)
+    if (!ok) {
+      setSavedTopicals(prev)
+      showToast('Failed to save progress. Please retry.', 'error')
+    }
+  }
+
   const handleTopicalExtract = async () => {
     const cleanCode = subjectCode.trim();
     const cleanTopic = topicInput.trim();
@@ -432,59 +498,112 @@ export default function DashboardPage() {
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              {/* Input grid for inputs */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+              {/* Subject + topic pickers */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '15px' }}>
                 <div>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px' }}>Subject Code:</p>
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder="Enter subject code (e.g. 9702)"
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px' }}>Subject:</p>
+                  <SubjectPicker
                     value={subjectCode}
-                    onChange={(e) => setSubjectCode(e.target.value)}
-                    style={{ width: '100%' }}
+                    onChange={setSubjectCode}
+                    onPick={handleSubjectPicked}
+                    onCommit={(code) => {
+                      // Only kick off discovery for complete-looking codes —
+                      // partial input would waste a 30s scan on a garbage code.
+                      const c = code.trim().toUpperCase()
+                      if (/^\d{4}$/.test(c) || /^W[A-Z]{2}\d{2}/.test(c)) loadPaperOptions(c)
+                    }}
                   />
                 </div>
                 <div>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px' }}>Topic Name:</p>
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder="Enter a topic (e.g. Kinematics, electricity)"
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px' }}>Topic:</p>
+                  <TopicPicker
+                    subjectCode={subjectCode}
                     value={topicInput}
-                    onChange={(e) => setTopicInput(e.target.value)}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px' }}>Paper Number (Optional):</p>
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder="e.g. 1 or 2 (default all)"
-                    value={paperType}
-                    onChange={(e) => setPaperType(e.target.value)}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px' }}>Variant (Optional):</p>
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder="e.g. 1 or 2 (default all)"
-                    value={variantType}
-                    onChange={(e) => setVariantType(e.target.value)}
-                    style={{ width: '100%' }}
+                    onChange={setTopicInput}
                   />
                 </div>
               </div>
 
+              {loadingOptions && (
+                <p style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
+                  <Loader className="spin" size={14} /> Checking which papers, variants, and years exist for {subjectCode.trim()}…
+                </p>
+              )}
+
+              {/* Paper number chips — only combinations that actually exist */}
+              {paperOptions?.paperNumbers?.length > 0 && (
+                <div>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '10px' }}>Paper number (optional):</p>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    {['', ...paperOptions.paperNumbers].map(p => {
+                      const selected = String(paperType) === String(p)
+                      return (
+                        <button
+                          key={`paper-${p === '' ? 'all' : p}`}
+                          type="button"
+                          onClick={() => setPaperType(String(p))}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '2px',
+                            border: selected ? '1px solid #ef5a2b' : '1px solid rgba(16, 32, 51, 0.18)',
+                            background: selected ? 'rgba(15,118,110,0.15)' : 'transparent',
+                            color: selected ? '#ef5a2b' : 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            fontWeight: selected ? '600' : '400',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {p === '' ? 'All papers' : `Paper ${p}`}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Variant chips */}
+              {paperOptions?.variants?.length > 1 && (
+                <div>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '10px' }}>Variant (optional):</p>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    {['', ...paperOptions.variants].map(v => {
+                      const selected = String(variantType) === String(v)
+                      return (
+                        <button
+                          key={`variant-${v === '' ? 'all' : v}`}
+                          type="button"
+                          onClick={() => setVariantType(String(v))}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '2px',
+                            border: selected ? '1px solid #ef5a2b' : '1px solid rgba(16, 32, 51, 0.18)',
+                            background: selected ? 'rgba(15,118,110,0.15)' : 'transparent',
+                            color: selected ? '#ef5a2b' : 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            fontWeight: selected ? '600' : '400',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {v === '' ? 'All variants' : `Variant ${v}`}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Year selector */}
               <div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '10px' }}>Select years to scan:</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '10px' }}>
+                  Select years to scan:
+                  {paperOptions?.years?.length > 0 && (
+                    <span style={{ color: 'var(--text-muted)', marginLeft: '8px', fontSize: '0.78rem' }}>
+                      (showing only years available for {subjectCode.trim()})
+                    </span>
+                  )}
+                </p>
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  {PAPER_YEARS.map(y => (
+                  {(paperOptions?.years ?? PAPER_YEARS).map(y => (
                     <button
                       key={y}
                       type="button"
@@ -602,6 +721,19 @@ export default function DashboardPage() {
 
             {extractedFiles && (
               <div style={{ display: 'flex', gap: '15px', marginTop: '20px', flexWrap: 'wrap' }} className="fade-in">
+                {(extractedFiles.qpUrl || extractedFiles.msUrl) && (
+                  <button
+                    type="button"
+                    onClick={() => openPreview(`${subjectCode.trim()} · ${topicInput.trim()}`, [
+                      { label: 'Question Paper', url: extractedFiles.qpUrl },
+                      { label: 'Mark Scheme', url: extractedFiles.msUrl },
+                    ])}
+                    className="btn-primary"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(239,90,43,0.4)', color: '#ef5a2b' }}
+                  >
+                    <Eye size={16} style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline-block' }} /> Preview Pack
+                  </button>
+                )}
                 {extractedFiles.qpUrl && (
                   <button type="button" onClick={() => downloadFile(extractedFiles.qpUrl, extractedFiles.qpName)} className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, var(--accent-primary), #c93f17)' }}>
                     <Download size={16} style={{ marginRight: '6px', verticalAlign: 'middle', display: 'inline-block' }} /> Download Question Paper
@@ -638,6 +770,9 @@ export default function DashboardPage() {
               </div>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 {savedTopicals.length} booklet{savedTopicals.length !== 1 ? 's' : ''} saved
+                {savedTopicals.some(t => t.status === 'done') && (
+                  <span style={{ color: '#22c55e' }}> · {savedTopicals.filter(t => t.status === 'done').length} done</span>
+                )}
               </span>
             </div>
 
@@ -691,6 +826,33 @@ export default function DashboardPage() {
                     </div>
 
                     <div style={{ display: 'flex', gap: '10px' }}>
+                      {(topical.qpUrl || topical.msUrl) && (
+                        <button
+                          onClick={() => openPreview(`${topical.subjectCode} · ${topical.topic}`, [
+                            { label: 'Question Paper', url: topical.qpUrl },
+                            { label: 'Mark Scheme', url: topical.msUrl },
+                          ])}
+                          title="Preview PDFs"
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                            color: 'var(--text-secondary)',
+                            borderRadius: '2px',
+                            padding: '8px 14px',
+                            fontSize: '0.8rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.09)'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'}
+                        >
+                          <Eye size={12} /> Preview
+                        </button>
+                      )}
                       {topical.qpUrl && (
                         <button
                           onClick={() => downloadFile(topical.qpUrl, `${topical.subjectCode}_${topical.topic.replace(/\s+/g, '_')}_Questions.pdf`)}
@@ -782,6 +944,60 @@ export default function DashboardPage() {
                       >
                         <Trash2 size={12} />
                       </button>
+                    </div>
+
+                    {/* Revision progress: status + score */}
+                    <div style={{ flexBasis: '100%', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', paddingTop: '12px', borderTop: '1px dashed rgba(255,255,255,0.06)' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Progress:</span>
+                      {[
+                        { key: 'attempted', label: 'Attempted', color: '#f59e0b' },
+                        { key: 'done', label: 'Done', color: '#22c55e' },
+                      ].map(({ key, label, color }) => {
+                        const active = topical.status === key
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => handleProgressChange(topical, { status: active ? null : key })}
+                            style={{
+                              background: active ? `${color}22` : 'transparent',
+                              border: `1px solid ${active ? color : 'rgba(255,255,255,0.12)'}`,
+                              color: active ? color : 'var(--text-muted)',
+                              borderRadius: '2px',
+                              padding: '5px 12px',
+                              fontSize: '0.75rem',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            {active ? <CheckSquare size={12} /> : <Square size={12} />} {label}
+                          </button>
+                        )
+                      })}
+                      <input
+                        type="text"
+                        defaultValue={topical.score || ''}
+                        placeholder="Score e.g. 18/25"
+                        aria-label="Score for this topical"
+                        onBlur={(e) => {
+                          const score = e.target.value.trim()
+                          if (score !== (topical.score || '')) handleProgressChange(topical, { score })
+                        }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+                        style={{
+                          marginLeft: 'auto',
+                          width: '130px',
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '2px',
+                          color: 'var(--text-primary)',
+                          padding: '6px 10px',
+                          fontSize: '0.78rem'
+                        }}
+                      />
                     </div>
                   </div>
                 ))}
@@ -1053,6 +1269,72 @@ export default function DashboardPage() {
             </form>
           </div>
         </div>
+
+        {/* PDF Preview Modal */}
+        {previewDoc && (
+          <div
+            onClick={() => setPreviewDoc(null)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{ width: 'min(960px, 100%)', height: 'min(88vh, 940px)', background: 'var(--bg-panel, #10151d)', border: '1px solid rgba(239,90,43,0.35)', borderRadius: '2px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>{previewDoc.title}</strong>
+                  {previewDoc.docs.length > 1 && (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {previewDoc.docs.map((docItem, i) => (
+                        <button
+                          key={docItem.label}
+                          type="button"
+                          onClick={() => setPreviewIndex(i)}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '2px',
+                            border: i === previewIndex ? '1px solid #ef5a2b' : '1px solid rgba(255,255,255,0.12)',
+                            background: i === previewIndex ? 'rgba(239,90,43,0.14)' : 'transparent',
+                            color: i === previewIndex ? '#ef5a2b' : 'var(--text-secondary)',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {docItem.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => window.open(previewDoc.docs[previewIndex].url, '_blank', 'noopener')}
+                    title="Open in new tab"
+                    style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)', padding: '6px 10px', borderRadius: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem' }}
+                  >
+                    <ExternalLink size={13} /> Open
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDoc(null)}
+                    title="Close preview"
+                    style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)', padding: '6px 10px', borderRadius: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              </div>
+              <iframe
+                key={previewDoc.docs[previewIndex].url}
+                src={previewDoc.docs[previewIndex].url}
+                title={`Preview: ${previewDoc.docs[previewIndex].label}`}
+                style={{ flex: 1, border: 'none', background: '#fff' }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Toast Notifications */}
         {toast.show && (
