@@ -4,6 +4,10 @@ import { createZiinaPaymentIntent } from "@/lib/ziina";
 
 const AMOUNT_FILS = 500; // $5 USD in cents
 const RENEWAL_WINDOW_DAYS = 3;
+// Keep generating a renewal link for a while after actual expiry too — if the
+// cron missed its window (deploy outage, etc.) the user shouldn't permanently
+// lose the "Renew now" reminder just because they're now a few days late.
+const POST_EXPIRY_GRACE_DAYS = 7;
 const REGENERATE_AFTER_HOURS = 24;
 
 // Ziina's public API is hosted-checkout/one-time only — there is no
@@ -44,7 +48,7 @@ export async function GET(request) {
       if (!expiresAt) continue;
 
       const daysUntilExpiry = (expiresAt - now) / (1000 * 60 * 60 * 24);
-      if (daysUntilExpiry > RENEWAL_WINDOW_DAYS || daysUntilExpiry < 0) continue;
+      if (daysUntilExpiry > RENEWAL_WINDOW_DAYS || daysUntilExpiry < -POST_EXPIRY_GRACE_DAYS) continue;
 
       const lastGenerated = sub.pendingRenewalGeneratedAt ? new Date(sub.pendingRenewalGeneratedAt).getTime() : 0;
       if (now - lastGenerated < REGENERATE_AFTER_HOURS * 60 * 60 * 1000) continue;

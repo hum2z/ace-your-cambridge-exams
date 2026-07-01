@@ -69,20 +69,22 @@ export default function DashboardPage() {
 
   // Load saved topicals on user mount
   useEffect(() => {
+    if (!user) return
+    let cancelled = false
     async function loadSaved() {
-      if (!user) return
       setLoadingSaved(true)
       try {
         const data = await getSavedTopicals(user.uid)
-        setSavedTopicals(data)
+        if (!cancelled) setSavedTopicals(data)
       } catch (err) {
         console.error("Error loading saved topicals:", err)
       } finally {
-        setLoadingSaved(false)
+        if (!cancelled) setLoadingSaved(false)
       }
     }
     loadSaved()
-  }, [user])
+    return () => { cancelled = true }
+  }, [user?.uid])
 
   // Practice/quiz-attempt state (self-marked) — feeds the progress dashboard
   // and revisit reminders below.
@@ -96,8 +98,11 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    reloadQuizAttempts()
-  }, [user])
+    if (!user) return
+    let cancelled = false
+    getQuizAttempts(user.uid).then(data => { if (!cancelled) setQuizAttempts(data) })
+    return () => { cancelled = true }
+  }, [user?.uid])
 
   // Chat History Sidebar states — persisted to Firestore per-user so history
   // survives refresh/device change instead of living only in local state.
@@ -108,14 +113,17 @@ export default function DashboardPage() {
   const [loadingChats, setLoadingChats] = useState(false)
 
   useEffect(() => {
+    if (!user) return
+    let cancelled = false
     async function loadChats() {
-      if (!user) return
       setLoadingChats(true)
       try {
         const sessions = await getChatSessions(user.uid)
+        if (cancelled) return
         if (sessions.length === 0) {
           const defaultMessages = [{ role: 'tutor', text: 'Hi! I am your AI tutor. Ask me any syllabus questions or open my session history list to start a new chat!' }]
           const newId = await createChatSession(user.uid, 'AS/A-Level General Study', defaultMessages)
+          if (cancelled) return
           setChatSessions([{ id: newId || 'session-default', title: 'AS/A-Level General Study', messages: defaultMessages }])
           setActiveSessionId(newId || 'session-default')
         } else {
@@ -125,11 +133,12 @@ export default function DashboardPage() {
       } catch (err) {
         console.error('Error loading chat sessions:', err)
       } finally {
-        setLoadingChats(false)
+        if (!cancelled) setLoadingChats(false)
       }
     }
     loadChats()
-  }, [user])
+    return () => { cancelled = true }
+  }, [user?.uid])
 
   // Syllabus Insights tabs
   const [activeInsightTab, setActiveInsightTab] = useState('repeated')

@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react'
 import { GraduationCap, Users, Copy, Check, CreditCard, Clock } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import { useAuth } from '@/components/AuthContext'
-import { createClassroom, getClassroomForTeacher, isClassroomActive } from '@/lib/firebase'
+import { createClassroom, getClassroomForTeacher, isClassroomActive, PRICE_PER_SEAT_FILS } from '@/lib/firebase'
 
-const PRICE_PER_SEAT_USD = 3
+const PRICE_PER_SEAT_USD = PRICE_PER_SEAT_FILS / 100
 
 function TeacherDashboard() {
   const { user } = useAuth()
@@ -107,7 +107,7 @@ function TeacherDashboard() {
             </label>
             <label>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Number of seats</p>
-              <input className="form-input" type="number" min={1} value={seatCount} onChange={(e) => setSeatCount(e.target.value)} />
+              <input className="form-input" type="number" min={1} max={500} value={seatCount} onChange={(e) => setSeatCount(e.target.value)} />
             </label>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
               Estimated cost: <strong style={{ color: 'var(--text-primary)' }}>${(Number(seatCount) || 0) * PRICE_PER_SEAT_USD}</strong> for {seatCount || 0} seats / 30 days.

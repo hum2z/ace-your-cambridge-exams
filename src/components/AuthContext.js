@@ -163,10 +163,14 @@ export function AuthProvider({ children }) {
     try {
       setLoading(true)
       const result = await signInWithPopup(auth, googleProvider)
+      // Only redeem a pending referral/classroom-join on brand-new accounts —
+      // otherwise a stale localStorage entry from someone else's click on a
+      // shared/public computer could silently enroll an unrelated existing
+      // user into a classroom (or credit a referral) on their next sign-in.
       if (getAdditionalUserInfo(result)?.isNewUser) {
         await redeemReferralIfPresent(result.user.uid)
+        await joinClassroomIfPresent(result.user.uid)
       }
-      await joinClassroomIfPresent(result.user.uid)
       return result.user
     } catch (error) {
       console.error("Error signing in with Google:", error)
@@ -180,7 +184,6 @@ export function AuthProvider({ children }) {
     try {
       setLoading(true)
       const result = await signInWithEmailAndPassword(auth, email, password)
-      await joinClassroomIfPresent(result.user.uid)
       return result.user
     } catch (error) {
       console.error("Error signing in with email:", error)

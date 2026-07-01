@@ -107,7 +107,9 @@ export default function SubscriptionPage() {
           {isPremium && (
             <div className="tool-row" style={{ marginTop: 24, borderColor: 'rgba(36, 209, 142, 0.35)' }}>
               <strong style={{ color: 'var(--success)' }}>Premium active</strong>
-              <span style={{ color: 'var(--text-secondary)' }}>{daysRemaining} day{daysRemaining !== 1 ? 's' : ''} left</span>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                {subscription?.viaClassroom ? 'Via your teacher\'s classroom' : `${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} left`}
+              </span>
               {subscription?.expiresAt && (
                 <div className="tool-meta" style={{ gridColumn: '1 / -1' }}>
                   Expires {new Date(subscription.expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
@@ -116,7 +118,7 @@ export default function SubscriptionPage() {
             </div>
           )}
 
-          {isPremium && subscription?.pendingRenewalUrl && daysRemaining <= 3 && (
+          {isPremium && !subscription?.viaClassroom && subscription?.pendingRenewalUrl && daysRemaining <= 3 && (
             <div className="tool-row" style={{ marginTop: 16, borderColor: 'rgba(239, 90, 43, 0.4)' }}>
               <RefreshCw size={16} color="#ef5a2b" />
               <span style={{ color: '#ef5a2b', fontWeight: 700 }}>Your pass renews soon.</span>
@@ -126,7 +128,7 @@ export default function SubscriptionPage() {
             </div>
           )}
 
-          {isPremium && (
+          {isPremium && !subscription?.viaClassroom && (
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               <input
                 type="checkbox"

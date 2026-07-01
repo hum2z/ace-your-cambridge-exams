@@ -1,5 +1,12 @@
 const ZIINA_API_URL = "https://api-v2.ziina.com/api/payment_intent";
 
+class ZiinaApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+  }
+}
+
 // Shared helper for creating a Ziina hosted-checkout payment intent. Ziina's
 // public API is one-time/hosted-checkout only (no card-on-file tokens), so
 // there is no way to silently re-charge a saved card — this just generates a
@@ -8,7 +15,7 @@ const ZIINA_API_URL = "https://api-v2.ziina.com/api/payment_intent";
 export async function createZiinaPaymentIntent({ amountFils, message, successUrl, cancelUrl }) {
   const apiKey = process.env.ZIINA_API_KEY;
   if (!apiKey) {
-    throw new Error("ZIINA_API_KEY is not configured");
+    throw new ZiinaApiError("ZIINA_API_KEY is not configured", 500);
   }
 
   const response = await fetch(ZIINA_API_URL, {
@@ -29,8 +36,27 @@ export async function createZiinaPaymentIntent({ amountFils, message, successUrl
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.message || "Failed to create Ziina payment intent");
+    throw new ZiinaApiError(data.message || "Failed to create Ziina payment intent", response.status);
   }
 
   return { redirectUrl: data.redirect_url, paymentIntentId: data.id };
+}
+
+export async function getZiinaPaymentIntent(paymentIntentId) {
+  const apiKey = process.env.ZIINA_API_KEY;
+  if (!apiKey) {
+    throw new ZiinaApiError("ZIINA_API_KEY is not configured", 500);
+  }
+
+  const response = await fetch(`${ZIINA_API_URL}/${paymentIntentId}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new ZiinaApiError(data.message || "Failed to verify payment", response.status);
+  }
+
+  return data;
 }

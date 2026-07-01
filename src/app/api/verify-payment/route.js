@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebaseAdmin";
+import { getZiinaPaymentIntent } from "@/lib/ziina";
 
 export async function GET(request) {
   try {
@@ -15,35 +16,7 @@ export async function GET(request) {
       );
     }
 
-    const apiKey = process.env.ZIINA_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "Payment service not configured" },
-        { status: 500 }
-      );
-    }
-
-    // Verify payment status with Ziina
-    const response = await fetch(
-      `https://api-v2.ziina.com/api/payment_intent/${paymentIntentId}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-        },
-      }
-    );
-
-    const paymentData = await response.json();
-
-    if (!response.ok) {
-      console.error("Ziina verification error:", paymentData);
-      return NextResponse.json(
-        { error: "Failed to verify payment" },
-        { status: response.status }
-      );
-    }
-
+    const paymentData = await getZiinaPaymentIntent(paymentIntentId);
     const isCompleted = paymentData.status === "completed";
 
     // If payment is completed, activate the relevant record in Firestore —
@@ -102,8 +75,8 @@ export async function GET(request) {
   } catch (error) {
     console.error("Verify payment error:", error);
     return NextResponse.json(
-      { error: "Verification failed" },
-      { status: 500 }
+      { error: error.message || "Verification failed" },
+      { status: error.status || 500 }
     );
   }
 }

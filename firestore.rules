@@ -12,7 +12,11 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == uid;
 
       allow create: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.status == 'trial';
+        && request.resource.data.status == 'trial'
+        && request.resource.data.keys().hasOnly([
+             'status', 'plan', 'startDate', 'createdAt', 'grantedAutomatically',
+             'topicalUsesRemaining', 'notesUsesRemaining'
+           ]);
 
       allow update: if request.auth != null && request.auth.uid == uid
         && request.resource.data.diff(resource.data).affectedKeys()
@@ -62,8 +66,14 @@ service cloud.firestore {
       allow read: if request.auth != null &&
         (resource.data.teacherUid == request.auth.uid
           || request.auth.uid in resource.data.get('studentUids', []));
+      // Creation must start in 'pending' with no students and no activation
+      // fields — status/expiresAt/studentUids are only ever set server-side
+      // (Admin SDK) after a verified payment or a join via /api/classroom/join.
       allow create: if request.auth != null
-        && request.resource.data.teacherUid == request.auth.uid;
+        && request.resource.data.teacherUid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.studentUids.size() == 0
+        && !request.resource.data.keys().hasAny(['expiresAt', 'activatedAt', 'paymentIntentId']);
       allow update: if request.auth != null
         && resource.data.teacherUid == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys()

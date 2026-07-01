@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createZiinaPaymentIntent } from "@/lib/ziina";
 import { getAdminDb } from "@/lib/firebaseAdmin";
 
+const MAX_SEATS = 500;
+
 export async function POST(request) {
   try {
     const { classId, teacherUid } = await request.json();
@@ -20,8 +22,8 @@ export async function POST(request) {
     }
 
     const seatCount = Number(classroom.seatCount) || 0;
-    if (seatCount <= 0) {
-      return NextResponse.json({ error: "Invalid seat count." }, { status: 400 });
+    if (seatCount <= 0 || seatCount > MAX_SEATS) {
+      return NextResponse.json({ error: `Seat count must be between 1 and ${MAX_SEATS}.` }, { status: 400 });
     }
     const pricePerSeatFils = Number(classroom.pricePerSeatFils) || 300;
     const amountFils = seatCount * pricePerSeatFils;
@@ -41,6 +43,6 @@ export async function POST(request) {
     return NextResponse.json({ redirect_url: redirectUrl, payment_intent_id: paymentIntentId });
   } catch (error) {
     console.error("Create classroom payment error:", error);
-    return NextResponse.json({ error: error.message || "An unexpected error occurred." }, { status: 500 });
+    return NextResponse.json({ error: error.message || "An unexpected error occurred." }, { status: error.status || 500 });
   }
 }

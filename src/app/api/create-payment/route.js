@@ -38,7 +38,7 @@ export async function POST(request) {
     console.error("Create payment error:", error);
     return NextResponse.json(
       { error: error.message || "An unexpected error occurred." },
-      { status: 500 }
+      { status: error.status || 500 }
     );
   }
 }

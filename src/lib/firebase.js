@@ -251,7 +251,7 @@ export const getReferralCount = async (userId) => {
 
 // --- Teacher/school classrooms (per-seat bulk pricing) ---
 
-const PRICE_PER_SEAT_FILS = 300; // $3 USD per seat / 30 days (bulk discount vs $5 individual)
+export const PRICE_PER_SEAT_FILS = 300; // $3 USD per seat / 30 days (bulk discount vs $5 individual)
 
 function generateInviteCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();

@@ -33,7 +33,11 @@ export default function PremiumGate({ children }) {
     ? Math.ceil((new Date(subscription.expiresAt) - new Date()) / (1000 * 60 * 60 * 24))
     : null
 
-  if (isPremium && subscription?.pendingRenewalUrl && daysLeft !== null && daysLeft <= 3) {
+  // Classroom-inherited access doesn't have its own pendingRenewalUrl — the
+  // teacher renews the classroom, not the individual student — so exclude it.
+  const hasRenewalLink = !subscription?.viaClassroom && subscription?.pendingRenewalUrl
+
+  if (isPremium && hasRenewalLink && daysLeft !== null && daysLeft <= 3) {
     return (
       <>
         <div style={{ background: 'rgba(239, 90, 43, 0.12)', borderBottom: '1px solid rgba(239, 90, 43, 0.25)', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', flexWrap: 'wrap', fontSize: '0.85rem', color: '#ef5a2b', fontWeight: 600 }}>
@@ -68,6 +72,11 @@ export default function PremiumGate({ children }) {
         <div className="grid-lines"></div>
         
         <div className="panel" style={{ width: '100%', maxWidth: '500px', textAlign: 'center' }}>
+          {hasRenewalLink && (
+            <div style={{ background: 'rgba(239,90,43,0.1)', border: '1px solid rgba(239,90,43,0.25)', borderRadius: '2px', padding: '10px 16px', marginBottom: '20px', fontSize: '0.85rem', color: '#ef5a2b', fontWeight: 600 }}>
+              Your pass just lapsed. <a href={subscription.pendingRenewalUrl} style={{ color: 'var(--accent-primary)', textDecoration: 'underline' }}>Renew now</a> to pick up where you left off.
+            </div>
+          )}
           <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '70px', height: '70px', borderRadius: '2px', background: 'rgba(96, 165, 250,0.14)', marginBottom: '24px' }}>
             <Lock size={32} color="var(--accent-primary)" />
           </div>
