@@ -7,9 +7,9 @@ import { useAuth } from '@/components/AuthContext'
 import { subscriptionFaqs as faqs } from '@/lib/faqs'
 
 const features = [
+  'Unlimited past paper scans',
+  'AI weakness analysis reports',
   'Unlimited topical snippet extractions',
-  'Unlimited examiner intelligence reports',
-  '24/7 AI tutor workspace',
   'Authentic past paper downloads',
   'Priority server speed',
 ]
@@ -71,7 +71,7 @@ export default function SubscriptionPage() {
           <p className="section-kicker">Pricing</p>
           <h1 className="section-heading">Full access, simple price.</h1>
           <p className="section-copy">
-            Keep every extraction, report, print pack, and tutor session available for a focused 30-day exam sprint.
+            Keep every paper scan, weakness analysis, and topical pack available for a focused 30-day exam sprint.
           </p>
         </div>
 

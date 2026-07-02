@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, BookOpenCheck, Bot, CheckCircle, ClipboardList, Download, Files, Search, Sparkles } from 'lucide-react'
+import { ArrowRight, BookOpenCheck, CheckCircle, Download, Files, ScanLine, Search, Sparkles, Target } from 'lucide-react'
 import { useAuth } from '@/components/AuthContext'
 
 const features = [
@@ -11,14 +11,14 @@ const features = [
     text: 'Filter by syllabus, topic, year, paper, and variant without digging through archive folders.',
   },
   {
-    icon: ClipboardList,
-    title: 'Examiner intelligence',
-    text: 'Review repeated question styles, scoring words, and mistakes before you start the set.',
+    icon: ScanLine,
+    title: 'Past paper scanning',
+    text: 'Upload an attempted paper and get an AI examiner analysis of exactly where marks were lost.',
   },
   {
-    icon: Bot,
-    title: 'Tutor on standby',
-    text: 'Ask follow-up questions while you build packs and keep sessions organized by topic.',
+    icon: Target,
+    title: 'Weak point targeting',
+    text: 'Every weak topic in the analysis becomes a one-tap topical pack, so revision goes where it matters.',
   },
   {
     icon: Download,
@@ -51,7 +51,7 @@ export default function HomePage() {
               Cambridge past papers, made <em>useful</em>.
             </h1>
             <p className="section-copy">
-              AceurExam turns Cambridge (CAIE) past papers into topical practice. Build A Level and AS topical packs for Maths 9709, Physics 9702, Chemistry 9701 and Biology 9700, read examiner notes, and study beside an AI tutor that stays out of the way.
+              AceurExam turns Cambridge (CAIE) past papers into topical practice. Scan a paper you&apos;ve attempted for an AI weakness analysis, then build A Level and AS topical packs for Maths 9709, Physics 9702, Chemistry 9701 and Biology 9700 — questions, mark schemes, and solution guides by topic.
             </p>
           </div>
 
@@ -77,9 +77,9 @@ export default function HomePage() {
 
           <div className="console-body">
             <aside className="console-rail" aria-label="Workspace sections">
-              <div className="rail-item active">Extract</div>
-              <div className="rail-item">Notes</div>
-              <div className="rail-item">Tutor</div>
+              <div className="rail-item active">Scan</div>
+              <div className="rail-item">Analyze</div>
+              <div className="rail-item">Extract</div>
               <div className="rail-item">Library</div>
             </aside>
 
@@ -125,18 +125,18 @@ export default function HomePage() {
         <div>
           <p className="section-kicker">The workflow</p>
           <h2 className="section-heading">
-            From topic to <em>printable</em> topical pack in one quiet loop.
+            From weak point to <em>printable</em> topical pack in one quiet loop.
           </h2>
           <p className="section-copy">
-            The interface is arranged around the real Cambridge exam-prep loop: search past papers by topic, extract questions and mark schemes, read examiner guidance, ask the tutor, then export the topical set.
+            The interface is arranged around the real Cambridge exam-prep loop: scan a past paper you&apos;ve attempted, read the AI weakness analysis, then extract targeted question and mark scheme packs for every topic you need to fix.
           </p>
         </div>
 
         <div className="panel tool-surface">
           {[
-            ['Choose syllabus', 'Enter a subject code and topic in the dashboard.'],
-            ['Scan official papers', 'The system checks selected years, papers, and variants.'],
-            ['Export and review', 'Download the pack and keep the session in your library.'],
+            ['Scan your paper', 'Upload a past paper you attempted and get an instant weakness analysis.'],
+            ['Review weak points', 'The AI examiner flags the topics costing you marks, ranked by priority.'],
+            ['Generate topicals', 'One tap turns each weak topic into a QP + MS pack with a solution guide.'],
           ].map(([title, text], index) => (
             <div className="tool-row" key={title}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -182,9 +182,9 @@ export default function HomePage() {
           <h2 style={{ fontSize: 'clamp(2.4rem, 7vw, 5.2rem)', lineHeight: 0.9 }}>$5</h2>
           <p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>USD for 30 days of full access.</p>
           <ul className="feature-list">
+            <li className="feature-item"><CheckCircle size={18} color="var(--success)" /> Unlimited past paper scans</li>
+            <li className="feature-item"><CheckCircle size={18} color="var(--success)" /> AI weakness analysis</li>
             <li className="feature-item"><CheckCircle size={18} color="var(--success)" /> Unlimited topical extractions</li>
-            <li className="feature-item"><CheckCircle size={18} color="var(--success)" /> Examiner intelligence reports</li>
-            <li className="feature-item"><CheckCircle size={18} color="var(--success)" /> AI tutor workspace</li>
           </ul>
           <Link href={user ? '/dashboard' : '/subscription'} className="btn-primary">
             {user ? 'Go to Workspace' : 'Unlock Pass'} <ArrowRight size={18} />

@@ -1,7 +1,7 @@
 export const subscriptionFaqs = [
   {
     q: 'What does the Premium Study Pass include?',
-    a: 'It unlocks topical extractions, examiner reports, AI tutor requests, and paper compiling across supported Cambridge subjects.',
+    a: 'It unlocks unlimited past paper scans with AI weakness analysis and unlimited topical extractions across supported Cambridge subjects.',
   },
   {
     q: 'How does billing work?',

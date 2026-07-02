@@ -1,7 +1,7 @@
 export const metadata = {
-  title: 'Study Workspace — Topical Past Paper Extraction',
+  title: 'Study Workspace — Paper Scanning & Topical Extraction',
   description:
-    'Search Cambridge AS & A-Level past papers by subject code and topic, extract question and mark scheme PDFs, generate examiner notes, and ask the AI tutor.',
+    'Scan a Cambridge past paper for an AI weakness analysis, then extract topical question and mark scheme PDFs for every weak topic across AS & A-Level subjects.',
   alternates: { canonical: '/dashboard' },
 }
 

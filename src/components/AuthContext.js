@@ -16,9 +16,12 @@ const AuthContext = createContext({
   consumeTrialUse: async () => false,
 })
 
-const TRIAL_LIMITS = { topicalUsesRemaining: 1, notesUsesRemaining: 1 }
+const TRIAL_LIMITS = { topicalUsesRemaining: 1, scanUsesRemaining: 1 }
 const isTrialSub = (sub) => !!sub && sub.status === 'trial'
-const trialHasUse = (sub, kind) => isTrialSub(sub) && (sub[`${kind}UsesRemaining`] ?? 0) > 0
+// Trial docs created before the paper scanner existed lack scanUsesRemaining;
+// treat the missing field as the default allowance of 1.
+const trialUseDefault = (kind) => (kind === 'scan' ? 1 : 0)
+const trialHasUse = (sub, kind) => isTrialSub(sub) && (sub[`${kind}UsesRemaining`] ?? trialUseDefault(kind)) > 0
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -174,11 +177,11 @@ export function AuthProvider({ children }) {
   }
 
   const consumeTrialUse = useCallback(async (kind) => {
-    // kind: 'topical' | 'notes'
+    // kind: 'topical' | 'scan'
     if (!user || !subscription) return false
     if (!trialHasUse(subscription, kind)) return false
     const field = `${kind}UsesRemaining`
-    const next = { ...subscription, [field]: Math.max(0, (subscription[field] ?? 0) - 1) }
+    const next = { ...subscription, [field]: Math.max(0, (subscription[field] ?? trialUseDefault(kind)) - 1) }
     setSubscription(next)
     try {
       await saveSubscription(user.uid, { [field]: next[field] })

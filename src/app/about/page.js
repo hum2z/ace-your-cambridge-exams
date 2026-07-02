@@ -38,7 +38,7 @@ export default function AboutPage() {
         <div className="panel">
           <Award size={30} color="var(--accent-soft)" />
           <p className="section-copy" style={{ marginTop: 18 }}>
-            PastPaper turns raw Cambridge exam archives into practical study sessions: exact topical packs, marking expectations, and tutor support in the same workspace.
+            AceurExam turns raw Cambridge exam archives into practical study sessions: paper scanning, weakness analysis, and exact topical packs in the same workspace.
           </p>
         </div>
       </section>
@@ -66,7 +66,7 @@ export default function AboutPage() {
           <p className="section-kicker">The answer</p>
           <h2 style={{ fontSize: 'clamp(1.9rem, 4vw, 3.2rem)', marginBottom: 16 }}>One workspace for the whole loop.</h2>
           <p className="section-copy">
-            Search, extract, save, print, review examiner notes, and ask the tutor without leaving the flow.
+            Scan your paper, review your weak points, extract the topicals, and save them — without leaving the flow.
           </p>
         </div>
       </section>

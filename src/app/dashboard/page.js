@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Search, Cpu, Send, ChevronDown, ChevronUp, MessageSquare, Plus, X, Sparkles, Printer, Layers, BookCopy, CheckSquare, Square, FileText, Download, Calendar, Loader } from 'lucide-react'
-import { askTutor } from '@/lib/gemini'
+import { useState, useEffect, useRef } from 'react'
+import { ScanLine, Upload, X, Layers, BookCopy, CheckSquare, Square, FileText, Download, Calendar, Loader, Target, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { PAPER_YEARS } from '@/lib/paperService'
 import PremiumGate from '@/components/PremiumGate'
 import { useAuth } from '@/components/AuthContext'
@@ -25,13 +24,22 @@ function asText(val) {
   return String(val)
 }
 
+const SEVERITY_STYLES = {
+  high: { label: 'High priority', color: '#dc2626', bg: 'rgba(220, 38, 38, 0.12)', border: 'rgba(220, 38, 38, 0.3)' },
+  medium: { label: 'Medium priority', color: '#d97706', bg: 'rgba(217, 119, 6, 0.12)', border: 'rgba(217, 119, 6, 0.3)' },
+  low: { label: 'Low priority', color: '#0f766e', bg: 'rgba(15, 118, 110, 0.12)', border: 'rgba(15, 118, 110, 0.3)' },
+}
+
 export default function DashboardPage() {
   const { user, isPremium, isTrial, subscription, consumeTrialUse } = useAuth()
   const [subjectCode, setSubjectCode] = useState('')
-  const [insights, setInsights] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [chatInput, setChatInput] = useState('')
-  const [compilationYear, setCompilationYear] = useState(PAPER_YEARS[0])
+
+  // Paper Scanner state
+  const [scanFiles, setScanFiles] = useState([])
+  const [scanning, setScanning] = useState(false)
+  const [analysis, setAnalysis] = useState(null)
+  const fileInputRef = useRef(null)
+  const extractorRef = useRef(null)
 
   // Topical Extractor state
   const [topicInput, setTopicInput] = useState('')
@@ -80,21 +88,6 @@ export default function DashboardPage() {
     loadSaved()
   }, [user])
 
-  // Chat History Sidebar states
-  const [chatSessions, setChatSessions] = useState([
-    {
-      id: 'session-default',
-      title: 'AS/A-Level General Study',
-      messages: [{ role: 'tutor', text: 'Hi! I am your AI tutor. Ask me any syllabus questions or open my session history list to start a new chat!' }]
-    }
-  ])
-  const [activeSessionId, setActiveSessionId] = useState('session-default')
-  const [tutorSidebarOpen, setTutorSidebarOpen] = useState(false)
-  const [showHistoryList, setShowHistoryList] = useState(false)
-
-  // Syllabus Insights tabs
-  const [activeInsightTab, setActiveInsightTab] = useState('repeated')
-
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' })
 
   const showToast = (message, type = 'success') => {
@@ -104,206 +97,61 @@ export default function DashboardPage() {
     }, 4000)
   }
 
-  const handleSearch = async (e) => {
-    e.preventDefault()
-    if (!subjectCode) return
-    setLoading(true)
-    setInsights(null)
-    try {
-      const response = await fetch('/api/generate-insights', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subjectCode })
-      })
-      if (!response.ok) {
-        throw new Error('Failed to generate syllabus insights.')
-      }
-      const data = await response.json()
-      setInsights(data)
-      showToast(`Generated syllabus insights for ${subjectCode}!`, 'success')
-    } catch (error) {
-      console.error("Search Insights Error:", error)
-      showToast("Error generating insights. Check your OpenAI key config.", "error")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const activeSession = chatSessions.find(s => s.id === activeSessionId) || chatSessions[0]
-  const chatMessages = activeSession ? activeSession.messages : []
-
-  const handleCreateNewChat = () => {
-    const newId = `session-${Date.now()}`
-    const newTitle = subjectCode ? `${subjectCode} Exam Prep` : 'New Chat Session'
-    const newSession = {
-      id: newId,
-      title: newTitle,
-      messages: [{ role: 'tutor', text: `Hi! I am your AI tutor. Let's study and tackle doubts together!` }]
-    }
-    setChatSessions(prev => [newSession, ...prev])
-    setActiveSessionId(newId)
-    setShowHistoryList(false)
-    showToast('Started new chat session!', 'success')
-  }
-
-  const handleSendMessage = async (e) => {
-    e.preventDefault()
-    if (!chatInput) return
-
-    const userMsg = { role: 'user', text: chatInput }
-
-    // Append user message
-    setChatSessions(prev => prev.map(session => {
-      if (session.id === activeSessionId) {
-        let title = session.title
-        if (title === 'New Chat Session' || title === 'AS/A-Level General Study') {
-          title = chatInput.slice(0, 25) + (chatInput.length > 25 ? '...' : '')
-        }
-        return {
-          ...session,
-          title,
-          messages: [...session.messages, userMsg]
-        }
-      }
-      return session
-    }))
-
-    const currentInput = chatInput
-    setChatInput('')
-
-    try {
-      const response = await askTutor(currentInput, `Subject: ${subjectCode || 'General Cambridge Study'}`)
-      setChatSessions(prev => prev.map(session => {
-        if (session.id === activeSessionId) {
-          return {
-            ...session,
-            messages: [...session.messages, { role: 'tutor', text: response }]
-          }
-        }
-        return session
-      }))
-    } catch (error) {
-      console.error("Tutor Ask Error:", error)
-      setChatSessions(prev => prev.map(session => {
-        if (session.id === activeSessionId) {
-          return {
-            ...session,
-            messages: [...session.messages, { role: 'tutor', text: 'Sorry, I failed to process your question. Make sure your API key is correctly configured.' }]
-          }
-        }
-        return session
-      }))
-    }
-  }
-
-  // Examiner Notes state
-  const [examinerNotes, setExaminerNotes] = useState(null)
-  const [generatingNotes, setGeneratingNotes] = useState(false)
-  const [activeNotesTab, setActiveNotesTab] = useState('repeated')
-
   const canUse = (kind) => {
     if (isPremium) return true
-    if (isTrial && (subscription?.[`${kind}UsesRemaining`] ?? 0) > 0) return true
+    // Older trial docs predate the scanner and lack scanUsesRemaining — give them the default of 1.
+    const fallback = kind === 'scan' ? 1 : 0
+    if (isTrial && (subscription?.[`${kind}UsesRemaining`] ?? fallback) > 0) return true
     return false
   }
 
-  const handleGenerateNotes = async () => {
-    const cleanCode = subjectCode.trim()
-    const cleanTopic = topicInput.trim()
-    if (!cleanCode || !cleanTopic) {
-      showToast('Please enter a subject code and topic name.', 'error')
+  const handleScanFilesChange = (e) => {
+    const files = Array.from(e.target.files || [])
+    setScanFiles(files)
+    setAnalysis(null)
+  }
+
+  const handleScanPaper = async () => {
+    if (scanFiles.length === 0) {
+      showToast('Choose a past paper file first (PDF or photos).', 'error')
       return
     }
-    if (!canUse('notes')) {
-      showToast('Trial limit reached. Upgrade to Premium for unlimited notes.', 'error')
+    if (!canUse('scan')) {
+      showToast('Trial limit reached. Upgrade to Premium for unlimited paper scans.', 'error')
       return
     }
-    setGeneratingNotes(true)
-    setExaminerNotes(null)
-    showToast(`Analyzing papers for "${cleanTopic}"... This may take 15–30 seconds.`, 'info')
+
+    setScanning(true)
+    setAnalysis(null)
+    showToast('Scanning your paper... This may take 20–40 seconds.', 'info')
+
     try {
-      const response = await fetch('/api/generate-notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subjectCode: cleanCode, topic: cleanTopic, years: selectedYears })
-      })
-      if (!response.ok) {
-        const err = await response.json()
-        throw new Error(err.error || 'Failed to generate notes')
-      }
-      const data = await response.json()
-      setExaminerNotes(data)
-      if (!isPremium && isTrial) await consumeTrialUse('notes')
-      showToast('Examiner Intelligence Report generated!', 'success')
+      const formData = new FormData()
+      scanFiles.forEach(f => formData.append('files', f))
+      if (subjectCode.trim()) formData.append('subjectCode', subjectCode.trim())
+
+      const res = await fetch('/api/scan-paper', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Paper scan failed')
+
+      setAnalysis(data)
+      if (!subjectCode.trim() && data.subjectGuess) setSubjectCode(String(data.subjectGuess))
+      if (!isPremium && isTrial) await consumeTrialUse('scan')
+      showToast('Analysis ready! Review your weak points below.', 'success')
     } catch (error) {
-      console.error('Generate notes error:', error)
-      showToast(error.message || 'Notes generation failed.', 'error')
+      console.error('Scan paper error:', error)
+      showToast(error.message || 'Paper scan failed.', 'error')
     } finally {
-      setGeneratingNotes(false)
+      setScanning(false)
     }
   }
 
-  const [compilingPdfs, setCompilingPdfs] = useState(false)
-
-  const handleCompilePdfs = async () => {
-    if (!subjectCode) return
-
-    // Validate: must be a non‑empty subject code
-    const cleanCode = subjectCode.trim()
-    if (!cleanCode) {
-      showToast('Please enter a subject code.', 'error')
-      return
-    }
-
-    setCompilingPdfs(true)
-    showToast(`Fetching ${cleanCode} ${compilationYear} papers... This may take ~20 seconds.`, 'info')
-
-    try {
-      // Fetch Question Papers
-      const qpRes = await fetch('/api/compile-pdfs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subjectCode: cleanCode, year: compilationYear, type: 'qp' })
-      })
-
-      if (!qpRes.ok) throw new Error((await qpRes.json()).error || 'Failed to compile Question Papers')
-
-      const qpBlob = await qpRes.blob()
-      const qpUrl = window.URL.createObjectURL(qpBlob)
-      const qpLink = document.createElement('a')
-      qpLink.href = qpUrl
-      qpLink.target = '_blank'
-      document.body.appendChild(qpLink)
-      qpLink.click()
-      qpLink.remove()
-
-      showToast('Question Papers merged! Now compiling Mark Schemes...', 'info')
-
-      // Fetch Mark Schemes
-      const msRes = await fetch('/api/compile-pdfs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subjectCode: cleanCode, year: compilationYear, type: 'ms' })
-      })
-
-      if (!msRes.ok) throw new Error((await msRes.json()).error || 'Failed to compile Mark Schemes')
-
-      const msBlob = await msRes.blob()
-      const msUrl = window.URL.createObjectURL(msBlob)
-      const msLink = document.createElement('a')
-      msLink.href = msUrl
-      msLink.target = '_blank'
-      document.body.appendChild(msLink)
-      msLink.click()
-      msLink.remove()
-
-      showToast('Successfully downloaded Authentic Mega-PDFs!', 'success')
-    } catch (error) {
-      console.error('Compile error:', error)
-      showToast(error.message || 'Failed to compile PDFs. Check console for details.', 'error')
-    } finally {
-      setCompilingPdfs(false)
-    }
+  // From a weak point straight into the topical extractor, pre-filled.
+  const handleFocusWeakPoint = (topic) => {
+    setTopicInput(asText(topic))
+    if (!subjectCode.trim() && analysis?.subjectGuess) setSubjectCode(String(analysis.subjectGuess))
+    extractorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    showToast(`Topic set to "${asText(topic)}" — pick your years and generate the topical.`, 'info')
   }
 
   // Utility to trigger download and clean up object URL
@@ -412,16 +260,206 @@ export default function DashboardPage() {
           <div>
             <p className="section-kicker">Study dashboard</p>
             <h1 className="section-heading fade-in">
-              Build the exact pack you need.
+              Scan a paper. Find your weak points. Drill them.
             </h1>
           </div>
           <p className="section-copy fade-in">
-            Extract topical questions, generate examiner notes, compile yearly PDFs, and keep the tutor one tap away.
+            Upload a past paper for an instant weakness analysis, then turn each weak topic into a targeted topical pack with questions, mark scheme, and a solution guide.
           </p>
         </section>
 
+        {/* Past Paper Scanner Card */}
+        <section id="paper-scanner-card" className="site-section fade-in" style={{ marginTop: '28px' }}>
+          <div className="premium-card" style={{ padding: '30px', border: '1px solid rgba(239,90,43,0.3)', background: 'rgba(239,90,43,0.04)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <ScanLine size={22} color="#ef5a2b" />
+              <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--text-primary)' }}>Past Paper Scanner</h3>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px' }}>
+              Upload a past paper — ideally one you&apos;ve attempted or had marked — and the AI examiner analyzes it, pinpoints the topics you&apos;re losing marks on, and lines each one up for topical practice.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px', marginBottom: '18px' }}>
+              <div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px' }}>Subject Code (Optional — auto-detected):</p>
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="e.g. 9702"
+                  value={subjectCode}
+                  onChange={(e) => setSubjectCode(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '8px' }}>Your paper (PDF, or JPG/PNG photos of the pages):</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,image/jpeg,image/png,image/webp"
+                  multiple
+                  onChange={handleScanFilesChange}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '2px',
+                    border: '1px dashed rgba(239,90,43,0.5)',
+                    background: 'rgba(239,90,43,0.05)',
+                    color: scanFiles.length > 0 ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.9rem',
+                    textAlign: 'left'
+                  }}
+                >
+                  <Upload size={16} color="#ef5a2b" />
+                  {scanFiles.length === 0
+                    ? 'Choose file(s)... (max 4 MB each)'
+                    : scanFiles.length === 1
+                      ? scanFiles[0].name
+                      : `${scanFiles.length} files selected`}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleScanPaper}
+              disabled={scanning || scanFiles.length === 0}
+              style={{
+                padding: '14px 28px',
+                borderRadius: '2px',
+                background: scanning ? 'rgba(239, 90, 43, 0.18)' : 'linear-gradient(135deg, #ef5a2b, #c93f17)',
+                border: 'none',
+                color: 'white',
+                fontWeight: '700',
+                fontSize: '1rem',
+                cursor: (scanning || scanFiles.length === 0) ? 'not-allowed' : 'pointer',
+                opacity: scanFiles.length === 0 ? 0.5 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                transition: 'all 0.2s'
+              }}
+            >
+              {scanning ? (
+                <><div style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderLeftColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div> Analyzing Your Paper...</>
+              ) : (
+                <><ScanLine size={18} /> Scan & Analyze Paper</>
+              )}
+            </button>
+
+            {/* Analysis result */}
+            {analysis && (
+              <div className="fade-in" style={{ marginTop: '28px', borderTop: '1px solid rgba(239,90,43,0.2)', paddingTop: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <Target size={20} color="#ef5a2b" />
+                      <h4 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-primary)' }}>Your Weakness Analysis</h4>
+                      <span style={{
+                        fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '2px', textTransform: 'uppercase', letterSpacing: '0.04em',
+                        background: analysis.attempted ? 'rgba(15,118,110,0.15)' : 'rgba(217,119,6,0.15)',
+                        color: analysis.attempted ? '#0f766e' : '#d97706'
+                      }}>
+                        {analysis.attempted ? 'Attempted paper' : 'Unattempted paper'}
+                      </span>
+                    </div>
+                    {asText(analysis.paperInfo) && (
+                      <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{asText(analysis.paperInfo)}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setAnalysis(null)}
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(16, 32, 51, 0.18)', color: 'var(--text-secondary)', padding: '6px 12px', borderRadius: '2px', cursor: 'pointer', fontSize: '0.8rem' }}
+                  >
+                    <X size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Clear
+                  </button>
+                </div>
+
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', marginBottom: '20px' }}>
+                  {asText(analysis.overallSummary)}
+                </p>
+
+                {analysis.strengths.length > 0 && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <p style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#0f766e', marginBottom: '8px' }}>Holding strong</p>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {analysis.strengths.map((s, i) => (
+                        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#0f766e', background: 'rgba(15,118,110,0.1)', border: '1px solid rgba(15,118,110,0.25)', padding: '5px 10px', borderRadius: '2px' }}>
+                          <CheckCircle2 size={13} /> {asText(s)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <p style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#dc2626', marginBottom: '10px' }}>Focus on these weak points</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {analysis.weakPoints.map((wp, i) => {
+                    const sev = SEVERITY_STYLES[String(wp.severity || '').toLowerCase()] || SEVERITY_STYLES.medium
+                    return (
+                      <div key={i} style={{ border: `1px solid ${sev.border}`, background: sev.bg, borderRadius: '2px', padding: '16px 18px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                          <div style={{ flex: '1 1 320px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                              <AlertTriangle size={15} color={sev.color} />
+                              <strong style={{ color: 'var(--text-primary)', fontSize: '1rem' }}>{asText(wp.topic)}</strong>
+                              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: sev.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{sev.label}</span>
+                            </div>
+                            {asText(wp.evidence) && (
+                              <p style={{ margin: '0 0 6px', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{asText(wp.evidence)}</p>
+                            )}
+                            {asText(wp.focusAdvice) && (
+                              <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{asText(wp.focusAdvice)}</p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleFocusWeakPoint(wp.topic)}
+                            style={{
+                              background: 'linear-gradient(135deg, #ef5a2b, #c93f17)',
+                              border: 'none',
+                              color: 'white',
+                              borderRadius: '2px',
+                              padding: '10px 16px',
+                              fontSize: '0.85rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            Generate Topical <ArrowRight size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {asText(analysis.nextSteps) && (
+                  <p style={{ marginTop: '18px', fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                    {asText(analysis.nextSteps)}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+
         {/* Topical Snippet Extractor Card */}
-        <section id="topical-extractor-card" className="site-section fade-in" style={{ marginTop: '28px' }}>
+        <section id="topical-extractor-card" ref={extractorRef} className="site-section fade-in" style={{ marginTop: '28px', scrollMarginTop: '90px' }}>
           <div className="premium-card" style={{ padding: '30px', border: '1px solid rgba(15,118,110,0.3)', background: 'rgba(15,118,110,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
               <BookCopy size={22} color="#ef5a2b" />
@@ -566,35 +604,6 @@ export default function DashboardPage() {
                     <><div style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderLeftColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div> Scanning Papers...</>
                   ) : (
                     <><BookCopy size={18} /> Extract Topic Snippets ({solutionGuideEnabled && includeSolutionGuide ? '2 PDFs + Guide' : '2 PDFs'})</>
-                  )}
-                </button>
-
-                {/* Generate Notes button */}
-                <button
-                  type="button"
-                  onClick={handleGenerateNotes}
-                  disabled={generatingNotes || !subjectCode.trim() || !topicInput.trim()}
-                  style={{
-                    padding: '14px 28px',
-                    borderRadius: '2px',
-                    background: generatingNotes ? 'rgba(239, 90, 43, 0.15)' : 'linear-gradient(135deg, #ef5a2b, #c93f17)',
-                    border: 'none',
-                    color: generatingNotes ? 'var(--text-muted)' : '#06101d',
-                    fontWeight: '700',
-                    fontSize: '1rem',
-                    cursor: (generatingNotes || !subjectCode.trim() || !topicInput.trim()) ? 'not-allowed' : 'pointer',
-                    opacity: (!subjectCode.trim() || !topicInput.trim()) ? 0.5 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {generatingNotes ? (
-                    <><div style={{ width: '18px', height: '18px', border: '2px solid rgba(0,0,0,0.2)', borderLeftColor: '#06101d', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div> Analyzing Papers...</>
-                  ) : (
-                    <><FileText size={18} /> Generate Notes</>
                   )}
                 </button>
               </div>
@@ -789,270 +798,6 @@ export default function DashboardPage() {
             )}
           </div>
         </section>
-
-        {/* Examiner Intelligence Report */}
-        {examinerNotes && (
-          <section style={{ maxWidth: '900px', margin: '40px auto 0' }} className="fade-in">
-            <div className="premium-card" style={{ padding: '30px', border: '1px solid rgba(0,230,118,0.3)', background: 'rgba(0,230,118,0.03)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Sparkles color="#c93f17" size={24} />
-                  <div>
-                    <h3 style={{ fontSize: '1.6rem', margin: 0, color: 'var(--text-primary)' }}>Examiner Intelligence Report</h3>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{asText(examinerNotes.subjectCode)} · {asText(examinerNotes.topic)} · {asText(examinerNotes.yearsAnalyzed)}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setExaminerNotes(null)}
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(16, 32, 51, 0.18)', color: 'var(--text-secondary)', padding: '8px 16px', borderRadius: '2px', cursor: 'pointer', fontSize: '0.85rem' }}
-                >
-                  <X size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Close
-                </button>
-              </div>
-
-              {/* Notes Tabs */}
-              <div className="insights-tab-container">
-                <button
-                  className={`insights-tab ${activeNotesTab === 'repeated' ? 'active' : ''}`}
-                  onClick={() => setActiveNotesTab('repeated')}
-                >
-                  📋 Repeated Questions
-                </button>
-                <button
-                  className={`insights-tab ${activeNotesTab === 'keywords' ? 'active' : ''}`}
-                  onClick={() => setActiveNotesTab('keywords')}
-                >
-                  🔑 Scoring Keywords
-                </button>
-                <button
-                  className={`insights-tab ${activeNotesTab === 'expectations' ? 'active' : ''}`}
-                  onClick={() => setActiveNotesTab('expectations')}
-                >
-                  🎯 Examiner Expects
-                </button>
-                <button
-                  className={`insights-tab ${activeNotesTab === 'mistakes' ? 'active' : ''}`}
-                  onClick={() => setActiveNotesTab('mistakes')}
-                >
-                  ⚠️ Common Mistakes
-                </button>
-                <button
-                  className={`insights-tab ${activeNotesTab === 'tips' ? 'active' : ''}`}
-                  onClick={() => setActiveNotesTab('tips')}
-                >
-                  💡 High-Yield Tips
-                </button>
-              </div>
-
-              {/* Notes Content */}
-              <div className="insights-content fade-in" key={activeNotesTab}>
-                {activeNotesTab === 'repeated' && (
-                  <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {asText(examinerNotes.mostRepeatedQuestions)}
-                  </div>
-                )}
-                {activeNotesTab === 'keywords' && (
-                  <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {asText(examinerNotes.scoringKeywords)}
-                  </div>
-                )}
-                {activeNotesTab === 'expectations' && (
-                  <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {asText(examinerNotes.examinerExpectations)}
-                  </div>
-                )}
-                {activeNotesTab === 'mistakes' && (
-                  <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {asText(examinerNotes.commonMistakes)}
-                  </div>
-                )}
-                {activeNotesTab === 'tips' && (
-                  <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {asText(examinerNotes.highYieldTips)}
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {loading && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '60px' }} className="fade-in">
-            <div className="spinner" style={{ border: '4px solid rgba(255,255,255,0.1)', width: '36px', height: '36px', borderRadius: '50%', borderLeftColor: 'var(--accent-primary)', animation: 'spin 1s linear infinite' }}></div>
-            <p style={{ marginTop: '15px', color: 'var(--text-secondary)' }}>Compiling syllabus insights using GPT-4o mini...</p>
-          </div>
-        )}
-
-        {insights && (
-          <section style={{ marginTop: '60px', maxWidth: '800px', margin: '60px auto 0' }} className="fade-in">
-            <div className="premium-card" style={{ padding: '30px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Sparkles color="var(--accent-primary)" size={24} />
-                  <h3 style={{ fontSize: '2rem', margin: 0 }}>Syllabus Insights for {subjectCode}</h3>
-                </div>
-                <button
-                  onClick={() => window.open(`/print-pack?subjectCode=${subjectCode}`, '_blank')}
-                  className="btn-primary"
-                  style={{
-                    borderRadius: '2px',
-                    padding: '10px 24px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    background: 'linear-gradient(135deg, var(--accent-primary), #c93f17)',
-                    fontWeight: '600',
-                    fontSize: '0.9rem',
-                    border: 'none'
-                  }}
-                >
-                  <Printer size={16} /> Download Exam Pack (PDF)
-                </button>
-              </div>
-
-              {/* Insights Tabs */}
-              <div className="insights-tab-container">
-                <button
-                  className={`insights-tab ${activeInsightTab === 'repeated' ? 'active' : ''}`}
-                  onClick={() => setActiveInsightTab('repeated')}
-                >
-                  📋 Most Repeated Questions
-                </button>
-                <button
-                  className={`insights-tab ${activeInsightTab === 'keywords' ? 'active' : ''}`}
-                  onClick={() => setActiveInsightTab('keywords')}
-                >
-                  🔑 Keywords to Use
-                </button>
-                <button
-                  className={`insights-tab ${activeInsightTab === 'notes' ? 'active' : ''}`}
-                  onClick={() => setActiveInsightTab('notes')}
-                >
-                  📝 Notes
-                </button>
-              </div>
-
-              {/* Insights Content */}
-              <div className="insights-content fade-in" key={activeInsightTab}>
-                {activeInsightTab === 'repeated' && (
-                  <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {asText(insights.repeatedQuestions)}
-                  </div>
-                )}
-                {activeInsightTab === 'keywords' && (
-                  <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {asText(insights.keywords)}
-                  </div>
-                )}
-                {activeInsightTab === 'notes' && (
-                  <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {asText(insights.notes)}
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Slide-out Sidebar Drawer (Chat History + Active Chat) */}
-        <div className={`sidebar-drawer ${tutorSidebarOpen ? 'open' : ''}`}>
-          <div className="sidebar-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Cpu color="var(--accent-primary)" size={20} />
-              <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>AI Tutor Workspace</span>
-            </div>
-            <button className="sidebar-close-btn" onClick={() => setTutorSidebarOpen(false)}>
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Create New Chat session */}
-          <button className="new-chat-btn" onClick={handleCreateNewChat}>
-            <Plus size={16} style={{ marginRight: '6px', display: 'inline-block', verticalAlign: 'middle' }} />
-            New Chat Session
-          </button>
-
-          {/* Collapsible Session List Header */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              cursor: 'pointer',
-              padding: '5px 0 10px',
-              color: 'var(--text-secondary)',
-              fontSize: '0.85rem',
-              borderBottom: '1px solid rgba(255,255,255,0.05)',
-              marginBottom: '10px'
-            }}
-            onClick={() => setShowHistoryList(!showHistoryList)}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <MessageSquare size={14} /> Session History ({chatSessions.length})
-            </span>
-            {showHistoryList ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </div>
-
-          {/* Session List body */}
-          {showHistoryList && (
-            <div className="chat-history-list">
-              {chatSessions.map((session) => (
-                <div
-                  key={session.id}
-                  className={`chat-session-item ${session.id === activeSessionId ? 'active' : ''}`}
-                  onClick={() => {
-                    setActiveSessionId(session.id)
-                    setShowHistoryList(false) // collapse after choice for clean screen
-                  }}
-                >
-                  {session.title}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Main active chat area inside sidebar */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', marginTop: '10px' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              Active: {activeSession.title}
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '15px', paddingRight: '5px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {chatMessages.map((msg, i) => (
-                <div key={i} style={{ textAlign: msg.role === 'user' ? 'right' : 'left' }}>
-                  <div style={{
-                    display: 'inline-block',
-                    padding: '10px 14px',
-                    borderRadius: '2px',
-                    background: msg.role === 'user' ? 'var(--accent-primary)' : 'rgba(255,255,255,0.05)',
-                    color: msg.role === 'user' ? 'white' : 'var(--text-secondary)',
-                    fontSize: '0.85rem',
-                    lineHeight: '1.4',
-                    maxWidth: '85%',
-                    whiteSpace: 'pre-wrap',
-                    textAlign: 'left'
-                  }}>
-                    {msg.text}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <form onSubmit={handleSendMessage} style={{ position: 'relative', marginTop: 'auto' }}>
-              <input
-                type="text"
-                className="search-input"
-                style={{ padding: '12px 45px 12px 16px', fontSize: '0.85rem', background: 'rgba(255,255,255,0.03)', borderRadius: '2px' }}
-                placeholder="Ask a syllabus doubt..."
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-              />
-              <button type="submit" style={{ position: 'absolute', right: '12px', top: '12px', background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer' }}>
-                <Send size={18} />
-              </button>
-            </form>
-          </div>
-        </div>
 
         {/* Toast Notifications */}
         {toast.show && (

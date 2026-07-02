@@ -170,7 +170,7 @@ function SuccessContent() {
         Welcome to Pro!
       </h2>
       <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.7', maxWidth: '440px', margin: '0 auto 16px' }}>
-        Your Pro Study Pass is now active. You have full unlimited access to all Past Paper tools, AI Tutor sessions, and examiner reports.
+        Your Pro Study Pass is now active. You have full unlimited access to past paper scanning, weakness analysis, and topical extraction.
       </p>
 
       {expDate && (
@@ -185,7 +185,7 @@ function SuccessContent() {
         borderRadius: '2px', padding: '24px', maxWidth: '380px', margin: '0 auto 30px',
         textAlign: 'left'
       }}>
-        {['Unlimited Topical Extractions', 'Unlimited AI Tutor Sessions', 'Examiner Intelligence Reports', 'Priority Server Speed'].map((feature, i) => (
+        {['Unlimited Past Paper Scans', 'AI Weakness Analysis', 'Unlimited Topical Extractions', 'Priority Server Speed'].map((feature, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
             <CheckCircle size={16} color="#ef5a2b" />
             {feature}

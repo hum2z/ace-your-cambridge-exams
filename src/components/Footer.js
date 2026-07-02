@@ -10,7 +10,7 @@ export default function Footer() {
             <span className="brand-name">AceurExam</span>
           </Link>
           <p className="footer-tagline">
-            Quiet tools for ambitious students — topical packs, examiner notes, and an AI tutor in one workspace.
+            Quiet tools for ambitious students — past paper scanning, weakness analysis, and topical packs in one workspace.
           </p>
         </div>
 

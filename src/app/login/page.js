@@ -117,7 +117,7 @@ export default function LoginPage() {
           <p className="section-kicker">Study portal</p>
           <h1 className="section-heading">{activeTab === 'login' ? 'Welcome back.' : 'Create your account.'}</h1>
           <p className="section-copy">
-            Sign in to keep your topical packs, examiner notes, and tutor sessions connected to your study library.
+            Sign in to keep your paper scan analyses and topical packs connected to your study library.
           </p>
         </div>
 

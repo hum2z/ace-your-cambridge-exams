@@ -31,12 +31,13 @@ export default function PremiumGate({ children }) {
 
   if (isTrial) {
     const topicalLeft = subscription?.topicalUsesRemaining ?? 0
-    const notesLeft = subscription?.notesUsesRemaining ?? 0
+    // Older trial docs predate the scanner and lack scanUsesRemaining — default 1.
+    const scansLeft = subscription?.scanUsesRemaining ?? 1
     return (
       <>
         <div style={{ background: 'rgba(239, 90, 43, 0.12)', borderBottom: '1px solid rgba(239, 90, 43, 0.25)', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', flexWrap: 'wrap', fontSize: '0.85rem', color: '#ef5a2b', fontWeight: 600 }}>
           <Sparkles size={14} />
-          <span>Free trial · {topicalLeft} topical extraction · {notesLeft} notes generation left</span>
+          <span>Free trial · {topicalLeft} topical extraction · {scansLeft} paper scan left</span>
           <Link href="/subscription" style={{ color: 'var(--accent-primary)', textDecoration: 'underline' }}>Upgrade</Link>
         </div>
         {children}
@@ -63,11 +64,11 @@ export default function PremiumGate({ children }) {
             Unlock the Study Engine
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '32px', maxWidth: '380px', margin: '0 auto 32px' }}>
-            Get unlimited access to Topical Extraction, AI Tutor, Examiner Reports, and Mega-PDF compiling with a Premium Pass.
+            Get unlimited access to Past Paper Scanning, Weakness Analysis, and Topical Extraction with a Premium Pass.
           </p>
 
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '2px', padding: '20px', marginBottom: '28px', textAlign: 'left' }}>
-            {['Unlimited Topical Extractions', 'AI Study Tutor 24/7', 'Examiner Intelligence Reports', 'Priority Server Speed'].map((f, i) => (
+            {['Unlimited Past Paper Scans', 'AI Weakness Analysis', 'Unlimited Topical Extractions', 'Priority Server Speed'].map((f, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                 <Sparkles size={14} color="var(--accent-primary)" /> {f}
               </div>

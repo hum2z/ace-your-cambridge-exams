@@ -3,7 +3,7 @@ import { subscriptionFaqs } from '@/lib/faqs'
 export const metadata = {
   title: 'Pricing — Premium Study Pass, $5 for 30 Days',
   description:
-    'One simple price: $5 USD for 30 days of unlimited topical extractions, examiner intelligence reports, AI tutor access, and past paper downloads.',
+    'One simple price: $5 USD for 30 days of unlimited past paper scans, AI weakness analysis, and topical extractions.',
   alternates: { canonical: '/subscription' },
 }
 

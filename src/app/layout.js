@@ -11,11 +11,11 @@ const GA_MEASUREMENT_ID = 'G-V4PDPXBNPQ'
 export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'AceurExam | Cambridge Past Papers by Topic, Examiner Notes & AI Tutor',
+    default: 'AceurExam | Scan Past Papers, Find Weak Points & Build Topicals',
     template: '%s | AceurExam',
   },
   description:
-    'Build topical Cambridge past paper packs in seconds. Search AS & A-Level papers (Maths 9709, Physics 9702, Chemistry 9701, Biology 9700) by topic, get examiner notes, and study with an AI tutor.',
+    'Scan a Cambridge past paper for an instant AI weakness analysis, then build topical past paper packs in seconds. AS & A-Level Maths 9709, Physics 9702, Chemistry 9701, Biology 9700 — questions, mark schemes and solution guides by topic.',
   applicationName: 'AceurExam',
   keywords: [
     // Brand
@@ -54,11 +54,10 @@ export const metadata = {
     'Chemistry 9701 topicals',
     'Biology 9700 topicals',
     // Study tools
-    'examiner report notes',
-    'examiner notes',
-    'mark scheme notes',
-    'AI tutor Cambridge',
-    'AI exam tutor',
+    'past paper scanner',
+    'exam weakness analysis',
+    'AI past paper analysis',
+    'mark scheme by topic',
     'Cambridge revision',
     'A Level revision',
     'exam preparation',
@@ -70,15 +69,15 @@ export const metadata = {
     type: 'website',
     url: SITE_URL,
     siteName: 'AceurExam',
-    title: 'AceurExam | Cambridge Past Papers by Topic, Examiner Notes & AI Tutor',
+    title: 'AceurExam | Scan Past Papers, Find Weak Points & Build Topicals',
     description:
-      'Build topical Cambridge past paper packs in seconds, read examiner intelligence, and study with an AI tutor — all in one workspace.',
+      'Scan a Cambridge past paper for an AI weakness analysis, then drill each weak topic with targeted topical packs — questions, mark schemes and solution guides.',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'AceurExam — Cambridge past papers by topic, examiner notes & AI tutor',
+        alt: 'AceurExam — scan past papers, find weak points, build Cambridge topicals',
       },
     ],
     locale: 'en_US',
@@ -87,7 +86,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'AceurExam | Cambridge Past Papers by Topic',
     description:
-      'Topical Cambridge past paper packs, examiner notes, and an AI tutor in one workspace.',
+      'Scan past papers for weak points and build topical Cambridge packs — QP, MS and solution guides.',
     images: ['/og-image.png'],
   },
   robots: {
@@ -131,7 +130,7 @@ const structuredData = {
       operatingSystem: 'Web',
       url: SITE_URL,
       description:
-        'A Cambridge revision workspace: topical past paper extraction, examiner notes, and an AI tutor for AS & A-Level subjects.',
+        'A Cambridge revision workspace: scan past papers for an AI weakness analysis, then extract topical question and mark scheme packs for AS & A-Level subjects.',
       offers: {
         '@type': 'Offer',
         price: '5.00',

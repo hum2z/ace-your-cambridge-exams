@@ -8,7 +8,6 @@ export default function robots() {
       disallow: [
         '/api/',
         '/admin/',
-        '/print-pack',
         '/print-topical-pack',
         '/subscription/success',
       ],
